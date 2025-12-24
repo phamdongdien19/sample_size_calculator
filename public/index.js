@@ -121,6 +121,31 @@ async function loadDropdowns() {
     }
 }
 
+// ============ MODE SWITCHING ============
+function switchMode(mode) {
+    currentMode = mode;
+
+    // Update buttons
+    elements.modeButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.mode === mode);
+    });
+
+    // Update description
+    if (mode === 'quick') {
+        elements.modeDescription.textContent = 'Nhập nhanh với IR tự động suggest theo Location';
+        elements.detailedFields.classList.add('hidden');
+        elements.quickResults.classList.remove('hidden');
+        elements.detailedResults.classList.add('hidden');
+    } else {
+        elements.modeDescription.textContent = 'Nhập đầy đủ thông tin để có kết quả chính xác nhất';
+        elements.detailedFields.classList.remove('hidden');
+        elements.quickResults.classList.add('hidden');
+        elements.detailedResults.classList.remove('hidden');
+    }
+
+    updateCalculation();
+}
+
 // ============ EVENT LISTENERS ============
 function setupEventListeners() {
     // Mode toggle
