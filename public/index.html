@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Size Calculator | FW Tools</title>
+    <meta name="description"
+        content="Công cụ tính toán Sample Size và ước tính thời gian Fieldwork cho Market Research">
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <span class="logo">🚀 FW Tools</span>
+            </div>
+            <h1>Sample Size Calculator</h1>
+            <div class="header-right">
+                <a href="admin.html" class="admin-link" title="Admin">⚙️</a>
+            </div>
+        </header>
+
+        <main class="main-content">
+            <!-- LEFT COLUMN: INPUT -->
+            <section class="input-section">
+                <!-- MODE TOGGLE -->
+                <div class="card mode-card">
+                    <div class="mode-toggle">
+                        <button class="mode-btn active" data-mode="quick">⚡ Quick Mode</button>
+                        <button class="mode-btn" data-mode="detailed">📋 Detailed Mode</button>
+                    </div>
+                    <p class="mode-desc" id="modeDescription">Nhập nhanh với IR tự động suggest theo Location</p>
+                </div>
+
+                <!-- TEMPLATE SELECTOR -->
+                <div class="card template-card">
+                    <label for="templateSelect">📋 Chọn Template (tùy chọn)</label>
+                    <select id="templateSelect">
+                        <option value="">-- Chọn loại dự án --</option>
+                    </select>
+                </div>
+
+                <!-- INPUT FORM -->
+                <div class="card input-card">
+                    <div class="card-header">
+                        <h2>📝 Thông tin Dự án</h2>
+                    </div>
+
+                    <form id="calcForm">
+                        <div class="form-group">
+                            <label for="projectName">Tên dự án</label>
+                            <input type="text" id="projectName" placeholder="Ví dụ: Brand Health Check Q4...">
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="sampleSize">Quy mô mẫu (N) *</label>
+                                <input type="number" id="sampleSize" placeholder="500" min="1" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="loi">Độ dài (LOI - Phút) *</label>
+                                <input type="number" id="loi" placeholder="15" min="1" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Vùng miền / Loại Target (Multi-select)</label>
+                            <div class="multi-select-container" id="locationMultiSelect">
+                                <div class="select-box" id="locationSelectBox">
+                                    <span class="selected-text" id="locationSelectedText">-- Chọn locations --</span>
+                                    <span class="arrow">▼</span>
+                                </div>
+                                <div class="dropdown-panel hidden" id="locationDropdownPanel">
+                                    <!-- Dynamic content populated by JS -->
+                                </div>
+                            </div>
+                            <div class="ir-suggestion" id="irSuggestion"></div>
+                        </div>
+
+                        <!-- DETAILED MODE FIELDS -->
+                        <div class="detailed-fields" id="detailedFields">
+                            <div class="form-group">
+                                <label for="irDisplay">Incidence Rate (IR%) - <span id="irValue">35</span>%</label>
+                                <input type="range" id="irInput" min="1" max="100" value="35">
+                            </div>
+
+                            <div class="form-group">
+                                <label>Cấu trúc Quota</label>
+                                <div class="radio-group">
+                                    <label class="radio-card selected">
+                                        <input type="radio" name="quota" value="simple" checked>
+                                        <span class="radio-content">
+                                            <span class="radio-title">Simple</span>
+                                            <span class="radio-desc">Age, Gender, Region riêng biệt</span>
+                                        </span>
+                                    </label>
+                                    <label class="radio-card">
+                                        <input type="radio" name="quota" value="nested">
+                                        <span class="radio-content">
+                                            <span class="radio-title">Nested</span>
+                                            <span class="radio-desc">Interlocking (VD: Male 18-24 HCM)</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>Độ khó đối tượng (Target)</label>
+                                <div class="radio-group">
+                                    <label class="radio-card selected">
+                                        <input type="radio" name="target" value="normal" checked>
+                                        <span class="radio-content">
+                                            <span class="radio-title">Thường</span>
+                                            <span class="radio-desc">Gen Pop, Mass consumers</span>
+                                        </span>
+                                    </label>
+                                    <label class="radio-card hard-target">
+                                        <input type="radio" name="target" value="hard">
+                                        <span class="radio-content">
+                                            <span class="radio-title">Khó / Niche</span>
+                                            <span class="radio-desc">Doctors, B2B, Specialists</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- RIGHT COLUMN: RESULTS -->
+            <section class="results-section">
+                <!-- QUICK MODE RESULTS -->
+                <div class="card result-card quick-results" id="quickResults">
+                    <div class="card-header">
+                        <h2>📊 Ước tính Nhanh (3 Scenarios)</h2>
+                    </div>
+
+                    <div class="scenarios-grid">
+                        <div class="scenario-card best">
+                            <div class="scenario-label">🟢 Best Case</div>
+                            <div class="scenario-days" id="bestDays">--</div>
+                            <div class="scenario-desc" id="bestDesc">IR cao, target dễ</div>
+                        </div>
+                        <div class="scenario-card likely">
+                            <div class="scenario-label">🟡 Most Likely</div>
+                            <div class="scenario-days" id="likelyDays">--</div>
+                            <div class="scenario-desc" id="likelyDesc">Theo input hiện tại</div>
+                        </div>
+                        <div class="scenario-card worst">
+                            <div class="scenario-label">🔴 Worst Case</div>
+                            <div class="scenario-days" id="worstDays">--</div>
+                            <div class="scenario-desc" id="worstDesc">IR thấp, target khó</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DETAILED MODE RESULTS -->
+                <div class="card result-card detailed-results hidden" id="detailedResults">
+                    <div class="card-header">
+                        <h2>📊 Kết quả Chi tiết</h2>
+                    </div>
+
+                    <div class="result-box difficulty-box" id="resultDifficultyBox">
+                        <span class="label">Độ khó</span>
+                        <div class="value" id="resDifficulty">---</div>
+                        <div class="sub-value" id="resCaseName">Case #--</div>
+                    </div>
+
+                    <div class="metrics-grid">
+                        <div class="metric">
+                            <span class="label">Mẫu / Ngày</span>
+                            <span class="value" id="resDaily">--</span>
+                        </div>
+                        <div class="metric">
+                            <span class="label">Ước tính FW</span>
+                            <span class="value highlight" id="resDays">-- ngày</span>
+                        </div>
+                    </div>
+
+                    <div class="cpi-row">
+                        <span class="label">💰 CPI Estimate (VN)</span>
+                        <span class="value" id="resCPI">$ --</span>
+                    </div>
+                </div>
+
+                <!-- SUGGESTIONS -->
+                <div class="card suggestion-card">
+                    <div class="card-header">
+                        <h2>💡 Gợi ý từ Hệ thống</h2>
+                    </div>
+                    <ul class="suggestion-list" id="suggestionList">
+                        <li class="placeholder">Nhập thông tin để xem gợi ý...</li>
+                    </ul>
+                </div>
+
+                <!-- EXPERT CONCLUSION -->
+                <div class="card conclusion-card">
+                    <div class="card-header">
+                        <h2>⭐ Kết luận của Bạn (Expert)</h2>
+                    </div>
+
+                    <div class="conclusion-main">
+                        <label>Thời gian FW chính thức</label>
+                        <div class="conclusion-input-row">
+                            <input type="number" id="expertDays" placeholder="--" min="1" class="expert-days-input">
+                            <span class="unit">ngày</span>
+                        </div>
+                        <div class="quick-buffer">
+                            <span>Quick buffer:</span>
+                            <button class="buffer-btn" data-add="1">+1</button>
+                            <button class="buffer-btn" data-add="2">+2</button>
+                            <button class="buffer-btn" data-add="3">+3</button>
+                        </div>
+                    </div>
+
+                    <div class="conclusion-warning hidden" id="conclusionWarning"></div>
+
+                    <div class="form-group">
+                        <label for="expertNote">Ghi chú (tùy chọn)</label>
+                        <textarea id="expertNote" placeholder="Lý do chọn số ngày này, các yếu tố đã cân nhắc..."
+                            rows="2"></textarea>
+                    </div>
+
+                    <button type="button" class="save-btn" id="saveBtn">
+                        💾 Lưu kết luận
+                    </button>
+                    <div class="save-status" id="saveStatus"></div>
+                </div>
+
+                <!-- RECENT HISTORY -->
+                <div class="card history-card">
+                    <div class="card-header">
+                        <h2>📜 Lịch sử gần đây</h2>
+                    </div>
+                    <div class="history-list" id="historyList">
+                        <p class="placeholder">Chưa có lịch sử...</p>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="app-footer">
+            <p>© 2024 FW Tools | Sample Size Calculator v3.0</p>
+        </footer>
+    </div>
+
+    <script type="module" src="index.js"></script>
+</body>
+
+</html>

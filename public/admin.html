@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Sample Size Calculator</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="stylesheet" href="admin.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-left">
+                <a href="index.html" class="back-link">← Quay lại Calculator</a>
+            </div>
+            <h1>⚙️ Admin Panel</h1>
+            <div class="header-right">
+                <div id="authStatus" class="auth-status">
+                    <span id="userEmail">Chưa đăng nhập</span>
+                    <button id="loginBtn" class="auth-btn">🔐 Đăng nhập</button>
+                    <button id="logoutBtn" class="auth-btn hidden">🚪 Đăng xuất</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- LOGIN REQUIRED MESSAGE -->
+        <div class="login-required" id="loginRequired">
+            <div class="login-card">
+                <h2>🔐 Yêu cầu Đăng nhập</h2>
+                <p>Bạn cần đăng nhập với tài khoản Admin để truy cập trang này.</p>
+                <button id="googleLoginBtn" class="google-login-btn">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Đăng nhập với Google
+                </button>
+            </div>
+        </div>
+
+        <!-- ADMIN CONTENT -->
+        <main class="admin-content hidden" id="adminContent">
+            <!-- TABS -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="cases">📋 Cases</button>
+                <button class="tab-btn" data-tab="locations">📍 Locations</button>
+                <button class="tab-btn" data-tab="templates">📄 Templates</button>
+                <button class="tab-btn" data-tab="history">📜 History</button>
+            </div>
+
+            <!-- CASES TAB -->
+            <div class="tab-content active" id="casesTab">
+                <div class="tab-header">
+                    <h2>Quản lý Cases (Phân loại độ khó)</h2>
+                    <button class="add-btn" id="addCaseBtn">+ Thêm Case</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="casesTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Tên</th>
+                                <th>Độ khó</th>
+                                <th>IR</th>
+                                <th>Sample</th>
+                                <th>LOI</th>
+                                <th>Quota</th>
+                                <th>Target</th>
+                                <th>Samples/Day</th>
+                                <th>FW Days</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="casesTableBody">
+                            <tr>
+                                <td colspan="11">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="seed-section">
+                    <button class="seed-btn" id="seedCasesBtn">🌱 Tạo 12 Cases mặc định</button>
+                </div>
+            </div>
+
+            <!-- LOCATIONS TAB -->
+            <div class="tab-content" id="locationsTab">
+                <div class="tab-header">
+                    <h2>Quản lý Locations (IR Defaults)</h2>
+                    <button class="add-btn" id="addLocationBtn">+ Thêm Location</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="locationsTable">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Tên</th>
+                                <th>Tier</th>
+                                <th>IR Default</th>
+                                <th>IR Range</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="locationsTableBody">
+                            <tr>
+                                <td colspan="7">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="seed-section">
+                    <button class="seed-btn" id="seedLocationsBtn">🌱 Tạo Locations mặc định</button>
+                </div>
+            </div>
+
+            <!-- TEMPLATES TAB -->
+            <div class="tab-content" id="templatesTab">
+                <div class="tab-header">
+                    <h2>Quản lý Templates (Mẫu dự án)</h2>
+                    <button class="add-btn" id="addTemplateBtn">+ Thêm Template</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="templatesTable">
+                        <thead>
+                            <tr>
+                                <th>Icon</th>
+                                <th>Tên</th>
+                                <th>Sample</th>
+                                <th>IR</th>
+                                <th>LOI</th>
+                                <th>Quota</th>
+                                <th>Target</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="templatesTableBody">
+                            <tr>
+                                <td colspan="8">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="seed-section">
+                    <button class="seed-btn" id="seedTemplatesBtn">🌱 Tạo Templates mặc định</button>
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div class="tab-content" id="historyTab">
+                <div class="tab-header">
+                    <h2>Lịch sử Tính toán</h2>
+                    <button class="danger-btn" id="clearHistoryBtn">🗑️ Xóa tất cả</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="historyTable">
+                        <thead>
+                            <tr>
+                                <th>Ngày</th>
+                                <th>Dự án</th>
+                                <th>Sample</th>
+                                <th>System Days</th>
+                                <th>Expert Days</th>
+                                <th>Note</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL -->
+    <div class="modal-overlay hidden" id="modalOverlay">
+        <div class="modal" id="modal">
+            <div class="modal-header">
+                <h3 id="modalTitle">Thêm mới</h3>
+                <button class="modal-close" id="modalClose">×</button>
+            </div>
+            <div class="modal-body" id="modalBody">
+                <!-- Dynamic form content -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel" id="modalCancel">Hủy</button>
+                <button class="btn-save" id="modalSave">Lưu</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/admin.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null && 
+             (request.auth.token.email == "admin@yourcompany.com" || 
+              request.auth.token.admin == true);
+    }
+    
+    // Feasibility Cases: Public read, Admin write
+    match /feasibility_cases/{caseId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Location Defaults: Public read, Admin write
+    match /location_defaults/{locationId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Project Templates: Public read, Admin write
+    match /project_templates/{templateId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Calculation History: Public read/write (internal tool)
+    match /calculation_history/{historyId} {
+      allow read, write: if true;
+    }
+    
+    // App Config: Public read, Admin write
+    match /app_config/{configId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+  }
+}
