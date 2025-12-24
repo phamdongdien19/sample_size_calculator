@@ -111,16 +111,29 @@ function findClosestCase(cases, input) {
 export async function calculateQuickModeRange(input) {
     const cases = await loadCases();
 
-    // Best case: High IR, Simple quota, Normal target
-    const bestInput = { ...input, ir: 55, quota: 'simple', hardTarget: false };
+    // We reuse DetermineCase but override specific params to simulate scenarios
+
+    // Best case: simulate High IR within current constraints
+    // If input IR is already high, use it. If not, assume a 'Best' scenario IR (e.g., +20%) to see where it lands?
+    // Actually, Quick mode usually means: 
+    // Best: Optimistic view (Upper bound of current match or lower difficulty tier)
+    // Likely: Current match
+    // Worst: Pessimistic view
+
+    // However, based on the previous implementation logic:
+    // It seemed to just pick 3 specific cases? Or re-evaluate?
+    // Let's implement robustly:
+
+    const likelyCase = await determineCase(input);
+
+    // For Best/Worst, we might just tweak the IR or Difficulty?
+    // Let's grab the Likely Case, and find adjacent cases?
+    // Or just simulate inputs:
+
+    const bestInput = { ...input, ir: Math.min(100, (input.ir || 35) + 15), hardTarget: false };
     const bestCase = await determineCase(bestInput);
 
-    // Likely case: Medium IR, current quota, current target
-    const likelyInput = { ...input, ir: input.ir || 35 };
-    const likelyCase = await determineCase(likelyInput);
-
-    // Worst case: Low IR, Nested quota, Hard target (or current if already hard)
-    const worstInput = { ...input, ir: 15, quota: 'nested', hardTarget: true };
+    const worstInput = { ...input, ir: Math.max(1, (input.ir || 35) - 15), hardTarget: true };
     const worstCase = await determineCase(worstInput);
 
     return {
@@ -128,6 +141,69 @@ export async function calculateQuickModeRange(input) {
         likely: likelyCase,
         worst: worstCase
     };
+}
+
+/**
+ * Generate suggestions based on input and matched case
+ */
+export function generateSuggestions(input, matchedCase) {
+    const suggestions = [];
+
+    if (!matchedCase) return suggestions;
+
+    // 1. Difficulty based suggestions
+    if (matchedCase.difficulty.includes('Khó') || matchedCase.difficulty.includes('Cực')) {
+        suggestions.push({
+            type: 'warning',
+            text: 'Dự án thuộc nhóm KHÓ. Cần check kỹ với team Operation về khả năng đáp ứng.'
+        });
+    }
+
+    // 2. IR suggestions
+    if (input.ir < 10) {
+        suggestions.push({
+            type: 'danger',
+            text: 'IR dưới 10% là rất thấp cho Online Panel. Cân nhắc tăng giá (CPI) hoặc nới lỏng tiêu chí.'
+        });
+    } else if (input.ir < 20) {
+        suggestions.push({
+            type: 'warning',
+            text: 'IR thấp (10-20%). Tiến độ sẽ chậm, cần dự phòng thời gian.'
+        });
+    }
+
+    // 3. LOI suggestions
+    if (input.loi > 25) {
+        suggestions.push({
+            type: 'warning',
+            text: 'LOI > 25 phút sẽ có tỷ lệ bỏ cuộc (drop-out) cao. Cân nhắc cắt ngắn bảng hỏi.'
+        });
+    }
+
+    // 4. Quota suggestions
+    if (input.quota === 'nested') {
+        suggestions.push({
+            type: 'info',
+            text: 'Quota chéo (Nested) sẽ làm giảm tốc độ mẫu. Đảm bảo Feasibility cho từng cell nhỏ nhất.'
+        });
+    }
+
+    // 5. Target suggestions
+    if (input.hardTarget) {
+        suggestions.push({
+            type: 'info',
+            text: 'Đối tượng khó/ngách (Niche) cần có Incentive cao hơn mức chuẩn.'
+        });
+    }
+
+    // 6. Case specific suggestions
+    if (matchedCase.suggestions && matchedCase.suggestions.length > 0) {
+        matchedCase.suggestions.forEach(s => {
+            suggestions.push({ type: 'info', text: s });
+        });
+    }
+
+    return suggestions;
 }
 
 /**

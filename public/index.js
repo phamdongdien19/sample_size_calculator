@@ -35,8 +35,8 @@ const elements = {
 
     // Results
     irSuggestion: document.getElementById('irSuggestion'),
-    irValue: document.getElementById('irValue'),
     sampleSize: document.getElementById('sampleSize'),
+    projectName: document.getElementById('projectName'), // Added missing reference
     loi: document.getElementById('loi'),
     irInput: document.getElementById('irInput'),
     irValue: document.getElementById('irValue'),
@@ -218,21 +218,23 @@ function populateLocationMultiSelect(locations) {
         }
     });
 
-    let html = '';
-
-    // Sort items within tiers by order or name?
-    // Assuming locations are already sorted or irrelevant
+    let html = `
+        <div class="dropdown-search">
+            <input type="text" id="locationSearchInput" placeholder="🔍 Tìm kiếm location..." autocomplete="off">
+        </div>
+        <div class="dropdown-content">
+    `;
 
     Object.keys(tiers).sort().forEach(tierId => {
         const group = tiers[tierId];
         if (group.items.length === 0) return;
 
-        html += `<div class="tier-group">
+        html += `<div class="tier-group" data-tier="${tierId}">
             <h4>${group.name}</h4>`;
 
         group.items.forEach(l => {
             html += `
-                <label class="location-option">
+                <label class="location-option" data-search="${l.name.toLowerCase()}">
                     <input type="checkbox" value="${l.id}" data-name="${l.name}" data-tier="${l.tier}">
                     <span class="location-name">${l.name}</span>
                     <span class="location-meta">
@@ -245,7 +247,36 @@ function populateLocationMultiSelect(locations) {
         html += `</div>`;
     });
 
+    html += `</div>`; // End dropdown-content
+
+    html += `
+        <div class="dropdown-footer">
+            <button id="confirmLocationBtn" type="button">Xác nhận & Đóng</button>
+        </div>
+    `;
+
     elements.locationDropdownPanel.innerHTML = html;
+
+    // Bind Search Event
+    const searchInput = elements.locationDropdownPanel.querySelector('#locationSearchInput');
+    searchInput.addEventListener('input', (e) => {
+        const term = e.target.value.toLowerCase();
+        const options = elements.locationDropdownPanel.querySelectorAll('.location-option');
+
+        options.forEach(opt => {
+            const match = opt.dataset.search.includes(term);
+            opt.classList.toggle('hidden', !match);
+        });
+
+        // Hide empty groups
+        elements.locationDropdownPanel.querySelectorAll('.tier-group').forEach(group => {
+            const hasVisibleOptions = group.querySelectorAll('.location-option:not(.hidden)').length > 0;
+            group.classList.toggle('hidden', !hasVisibleOptions);
+        });
+    });
+
+    // Prevent closing when clicking search input
+    searchInput.addEventListener('click', (e) => e.stopPropagation());
 
     // Bind checkbox events
     elements.locationDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -256,9 +287,7 @@ function populateLocationMultiSelect(locations) {
     const confirmBtn = elements.locationDropdownPanel.querySelector('#confirmLocationBtn');
     if (confirmBtn) {
         confirmBtn.addEventListener('click', (e) => {
-            // Check if we also have toggle function logic overlapping? 
-            // The button just hides it.
-            e.stopPropagation(); // prevent triggering parent listeners
+            e.stopPropagation();
             elements.locationDropdownPanel.classList.add('hidden');
         });
     }

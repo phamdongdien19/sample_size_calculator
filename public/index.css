@@ -688,15 +688,40 @@ input[type="range"] {
     background: white;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    /* box-shadow: var(--shadow-lg); Remove shadow as it is now inline */
     margin-top: 4px;
+    z-index: 1;
+    border-top: none;
+    padding: 0;
+    /* Remove padding to let search bar fit */
+}
+
+.dropdown-search {
+    padding: 8px;
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    background: white;
+    z-index: 2;
+}
+
+.dropdown-search input {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border 0.2s;
+}
+
+.dropdown-search input:focus {
+    border-color: var(--primary);
+}
+
+.dropdown-content {
     max-height: 400px;
     overflow-y: auto;
     padding: 8px;
-    z-index: 1;
-    /* Low z-index is fine now */
-    border-top: none;
-    /* Merge with input visually if desired */
 }
 
 .tier-group {
@@ -793,3 +818,5 @@ input[type="range"] {
     font-size: 0.85rem;
     font-weight: 600;
 }
+.hidden { display: none !important; }
+.visible { visibility: visible !important; opacity: 1 !important; }
