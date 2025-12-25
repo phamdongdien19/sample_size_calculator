@@ -15,6 +15,8 @@ import { getQuickTimingCheck, calculateTimingFactor } from './js/timingService.j
 import { loadQuotaSkewConfig, getQuotaSkewMultiplier, getDefaultQuotaSkew } from './js/quotaSkewService.js';
 // Phase 2: Target Audience
 import { loadTargetAudiences, getAudience, calculateAudienceImpact } from './js/targetAudienceService.js';
+// Phase 3: Auth
+import { logOut, onAuthChange } from './js/authService.js';
 
 // ============ STATE ============
 let currentMode = 'quick'; // 'quick' or 'detailed'
@@ -1483,5 +1485,34 @@ function createNewProject() {
     updateCalculation();
 }
 
+
+
+// ============ AUTH UI ============
+function setupAuthUI() {
+    const authStatus = document.getElementById('authStatus');
+    const userEmail = document.getElementById('userEmail');
+    const logoutBtn = document.getElementById('logoutBtn');
+
+    if (logoutBtn) {
+        logoutBtn.addEventListener('click', async () => {
+            if (confirm('Bạn có chắc muốn đăng xuất?')) {
+                await logOut();
+                window.location.reload();
+            }
+        });
+    }
+
+    // Subscribe to auth changes
+    onAuthChange((user) => {
+        if (user && authStatus && userEmail) {
+            authStatus.classList.remove('hidden');
+            userEmail.textContent = user.email;
+        } else if (authStatus) {
+            authStatus.classList.add('hidden');
+        }
+    });
+}
+
 // ============ START ============
 init();
+setupAuthUI();

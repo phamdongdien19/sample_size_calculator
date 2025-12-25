@@ -1468,3 +1468,46 @@ input[type="range"] {
     font-size: 0.75rem !important;
     opacity: 0.7;
 }
+
+/* HEADER AUTH */
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.auth-status {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 4px 12px;
+    border-radius: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.auth-status.hidden {
+    display: none;
+}
+
+.user-email {
+    font-size: 0.85rem;
+    color: white;
+    opacity: 0.9;
+}
+
+.logout-btn-header {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 2px 6px;
+    border-radius: 50%;
+    transition: all 0.2s;
+    line-height: 1;
+}
+
+.logout-btn-header:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: scale(1.1);
+}
