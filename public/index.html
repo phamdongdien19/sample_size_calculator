@@ -127,6 +127,67 @@
                                     </label>
                                 </div>
                             </div>
+
+                            <!-- PANEL VENDOR MULTI-SELECT -->
+                            <div class="form-group">
+                                <label>🏢 Panel Source (Chọn nhiều vendors)</label>
+                                <div class="multi-select-container" id="panelMultiSelect">
+                                    <div class="select-box" id="panelSelectBox">
+                                        <span class="selected-text" id="panelSelectedText">-- Chọn panel vendors
+                                            --</span>
+                                        <span class="arrow">▼</span>
+                                    </div>
+                                    <div class="dropdown-panel hidden" id="panelDropdownPanel">
+                                        <!-- Dynamic content populated by JS -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- QUOTA SKEW -->
+                            <div class="form-group">
+                                <label>📊 Quota Distribution (Phân bổ)</label>
+                                <div class="radio-group radio-group-3">
+                                    <label class="radio-card skew-card selected">
+                                        <input type="radio" name="quotaSkew" value="balanced" checked>
+                                        <span class="radio-content">
+                                            <span class="radio-title">⚖️ Balanced</span>
+                                            <span class="radio-desc">50/50, Age đều</span>
+                                        </span>
+                                    </label>
+                                    <label class="radio-card skew-card">
+                                        <input type="radio" name="quotaSkew" value="light_skew">
+                                        <span class="radio-content">
+                                            <span class="radio-title">📊 Skew nhẹ</span>
+                                            <span class="radio-desc">70/30</span>
+                                        </span>
+                                    </label>
+                                    <label class="radio-card skew-card heavy-skew">
+                                        <input type="radio" name="quotaSkew" value="heavy_skew">
+                                        <span class="radio-content">
+                                            <span class="radio-title">🎯 Skew nặng</span>
+                                            <span class="radio-desc">Rất hẹp</span>
+                                        </span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- QC BUFFER -->
+                            <div class="form-group">
+                                <label for="qcBuffer">🔍 QC Reject Buffer - <span id="qcValue">10</span>%</label>
+                                <input type="range" id="qcBuffer" min="0" max="60" value="10">
+                                <div class="range-labels">
+                                    <span>0%</span>
+                                    <span>30%</span>
+                                    <span>60%</span>
+                                </div>
+                            </div>
+
+                            <!-- FW START DATE & TIMING -->
+                            <div class="form-group">
+                                <label for="fwStartDate">📅 Ngày bắt đầu FW (auto-detect lễ/tết)</label>
+                                <input type="date" id="fwStartDate">
+                                <div class="timing-warning hidden" id="timingWarning"></div>
+                            </div>
                         </div>
                     </form>
                 </div>
@@ -173,12 +234,39 @@
 
                     <div class="metrics-grid">
                         <div class="metric">
-                            <span class="label">Mẫu / Ngày</span>
+                            <span class="label">Mẫu / Ngày (Base)</span>
                             <span class="value" id="resDaily">--</span>
                         </div>
                         <div class="metric">
                             <span class="label">Ước tính FW</span>
                             <span class="value highlight" id="resDays">-- ngày</span>
+                        </div>
+                    </div>
+
+                    <!-- FACTOR BREAKDOWN -->
+                    <div class="factor-breakdown" id="factorBreakdown">
+                        <div class="factor-header">📈 Factor Adjustment</div>
+                        <div class="factor-rows">
+                            <div class="factor-row">
+                                <span class="factor-label">🏢 Panel Source</span>
+                                <span class="factor-value" id="factorTraffic">×1.00</span>
+                            </div>
+                            <div class="factor-row">
+                                <span class="factor-label">📊 Quota Skew</span>
+                                <span class="factor-value" id="factorQuota">×1.00</span>
+                            </div>
+                            <div class="factor-row">
+                                <span class="factor-label">🔍 QC Buffer</span>
+                                <span class="factor-value" id="factorQC">+10%</span>
+                            </div>
+                            <div class="factor-row">
+                                <span class="factor-label">📅 Timing</span>
+                                <span class="factor-value" id="factorTiming">×1.00</span>
+                            </div>
+                        </div>
+                        <div class="factor-total">
+                            <span>Adjusted Daily Rate</span>
+                            <span class="factor-value-total" id="adjustedDaily">-- samples/day</span>
                         </div>
                     </div>
 

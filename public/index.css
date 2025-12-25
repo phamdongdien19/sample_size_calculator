@@ -818,5 +818,216 @@ input[type="range"] {
     font-size: 0.85rem;
     font-weight: 600;
 }
-.hidden { display: none !important; }
-.visible { visibility: visible !important; opacity: 1 !important; }
+
+.hidden {
+    display: none !important;
+}
+
+.visible {
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+/* ============ PHASE 1: MULTI-FACTOR COMPONENTS ============ */
+
+/* 3-column radio group for quota skew */
+.radio-group-3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.skew-card.heavy-skew.selected {
+    border-color: #f59e0b;
+    background-color: #fef3c7;
+}
+
+/* Range labels */
+.range-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* Timing Warning */
+.timing-warning {
+    margin-top: 8px;
+    padding: 10px 12px;
+    border-radius: 6px;
+    font-size: 0.85rem;
+}
+
+.timing-warning.warning {
+    background: var(--warning-light);
+    border-left: 3px solid var(--warning);
+    color: #92400e;
+}
+
+.timing-warning.critical {
+    background: var(--danger-light);
+    border-left: 3px solid var(--danger);
+    color: var(--danger);
+}
+
+.timing-warning.ok {
+    background: var(--success-light);
+    border-left: 3px solid var(--success);
+    color: #065f46;
+}
+
+/* Factor Breakdown */
+.factor-breakdown {
+    background: linear-gradient(135deg, #f0f4ff 0%, #f5f3ff 100%);
+    border-radius: var(--radius-sm);
+    padding: 12px;
+    margin-bottom: 16px;
+}
+
+.factor-header {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.factor-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.factor-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+}
+
+.factor-label {
+    font-size: 0.85rem;
+    color: var(--text-main);
+}
+
+.factor-value {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--primary);
+    background: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.factor-value.negative {
+    color: var(--danger);
+}
+
+.factor-value.positive {
+    color: var(--success);
+}
+
+.factor-total {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.factor-total>span:first-child {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.factor-value-total {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--success);
+    background: white;
+    padding: 4px 12px;
+    border-radius: 6px;
+}
+
+/* Panel Vendor Dropdown Styles */
+.vendor-option {
+    display: flex;
+    align-items: flex-start;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 6px;
+    transition: background 0.1s;
+}
+
+.vendor-option:hover {
+    background-color: var(--bg-app);
+}
+
+.vendor-option input[type="checkbox"] {
+    margin-right: 10px;
+    margin-top: 3px;
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary);
+}
+
+.vendor-info {
+    flex: 1;
+}
+
+.vendor-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+}
+
+.vendor-desc {
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-top: 2px;
+}
+
+.vendor-meta {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+}
+
+.vendor-badge {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.vendor-badge.internal {
+    background: var(--primary-light);
+    color: var(--primary);
+}
+
+.vendor-badge.external {
+    background: #e0e7ff;
+    color: #4338ca;
+}
+
+.vendor-factor {
+    font-size: 0.75rem;
+    color: var(--text-sub);
+    margin-left: auto;
+}
+
+#confirmPanelBtn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+#confirmPanelBtn:hover {
+    background: var(--primary-hover);
+}

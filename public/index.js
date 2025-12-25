@@ -9,6 +9,10 @@ import { calculateFWDays, compareExpertVsSystem, estimateCPI, generateSuggestion
 import { loadLocations, getIRSuggestion, getDefaultLocations } from './js/locationService.js';
 import { loadTemplates, getDefaultTemplates } from './js/templateService.js';
 import { saveCalculation, getRecentHistory } from './js/historyService.js';
+// Phase 1: Multi-factor imports
+import { loadPanelVendors, getDefaultVendors, calculateVendorFactor } from './js/panelVendorService.js';
+import { getQuickTimingCheck, calculateTimingFactor } from './js/timingService.js';
+import { loadQuotaSkewConfig, getQuotaSkewMultiplier, getDefaultQuotaSkew } from './js/quotaSkewService.js';
 
 // ============ STATE ============
 let currentMode = 'quick'; // 'quick' or 'detailed'
@@ -71,7 +75,29 @@ const elements = {
     saveStatus: document.getElementById('saveStatus'),
 
     // History
-    historyList: document.getElementById('historyList')
+    historyList: document.getElementById('historyList'),
+
+    // Phase 1: Multi-factor elements
+    // Panel Vendors
+    panelMultiSelect: document.getElementById('panelMultiSelect'),
+    panelSelectBox: document.getElementById('panelSelectBox'),
+    panelSelectedText: document.getElementById('panelSelectedText'),
+    panelDropdownPanel: document.getElementById('panelDropdownPanel'),
+    // Quota Skew
+    quotaSkewRadios: document.getElementsByName('quotaSkew'),
+    // QC Buffer
+    qcBuffer: document.getElementById('qcBuffer'),
+    qcValue: document.getElementById('qcValue'),
+    // Timing
+    fwStartDate: document.getElementById('fwStartDate'),
+    timingWarning: document.getElementById('timingWarning'),
+    // Factor Breakdown
+    factorTraffic: document.getElementById('factorTraffic'),
+    factorQuota: document.getElementById('factorQuota'),
+    factorQC: document.getElementById('factorQC'),
+    factorTiming: document.getElementById('factorTiming'),
+    adjustedDaily: document.getElementById('adjustedDaily'),
+    factorBreakdown: document.getElementById('factorBreakdown')
 };
 
 // ============ INITIALIZATION ============
@@ -118,6 +144,26 @@ async function loadDropdowns() {
     } catch (e) {
         console.log('Firebase error, using default locations:', e.message);
         populateLocationMultiSelect(getDefaultLocations());
+    }
+
+    // Phase 1: Load panel vendors
+    try {
+        const vendors = await loadPanelVendors();
+        if (vendors && vendors.length > 0) {
+            populatePanelVendorMultiSelect(vendors);
+        } else {
+            populatePanelVendorMultiSelect(getDefaultVendors());
+        }
+    } catch (e) {
+        console.log('Firebase error, using default vendors:', e.message);
+        populatePanelVendorMultiSelect(getDefaultVendors());
+    }
+
+    // Set default FW start date to today
+    if (elements.fwStartDate) {
+        const today = new Date();
+        elements.fwStartDate.value = today.toISOString().split('T')[0];
+        checkTimingWarning(today);
     }
 }
 
@@ -202,6 +248,43 @@ function setupEventListeners() {
 
     // Save button
     elements.saveBtn.addEventListener('click', onSave);
+
+    // Phase 1: Panel Vendor Multi-Select
+    if (elements.panelSelectBox) {
+        elements.panelSelectBox.addEventListener('click', togglePanelDropdown);
+        document.addEventListener('click', (e) => {
+            if (elements.panelMultiSelect && !elements.panelMultiSelect.contains(e.target)) {
+                elements.panelDropdownPanel.classList.add('hidden');
+            }
+        });
+    }
+
+    // Phase 1: Quota Skew Radio buttons
+    if (elements.quotaSkewRadios) {
+        elements.quotaSkewRadios.forEach(r => {
+            r.addEventListener('change', (e) => {
+                updateRadioCardSelection('quotaSkew', e.target.value);
+                updateCalculation();
+            });
+        });
+    }
+
+    // Phase 1: QC Buffer slider
+    if (elements.qcBuffer) {
+        elements.qcBuffer.addEventListener('input', () => {
+            elements.qcValue.textContent = elements.qcBuffer.value;
+            updateCalculation();
+        });
+    }
+
+    // Phase 1: FW Start Date (timing)
+    if (elements.fwStartDate) {
+        elements.fwStartDate.addEventListener('change', () => {
+            const startDate = new Date(elements.fwStartDate.value);
+            checkTimingWarning(startDate);
+            updateCalculation();
+        });
+    }
 }
 
 function updateRadioCardSelection(name, value) {
@@ -332,6 +415,104 @@ function populateTemplateDropdown(templates) {
         option.textContent = t.name;
         elements.templateSelect.appendChild(option);
     });
+}
+
+// ============ PANEL VENDOR MULTI-SELECT ============
+function populatePanelVendorMultiSelect(vendors) {
+    if (!vendors || vendors.length === 0 || !elements.panelDropdownPanel) return;
+
+    let html = `
+        <div class="dropdown-content">
+    `;
+
+    vendors.forEach(v => {
+        const badgeClass = v.isInternal ? 'internal' : 'external';
+        const badgeText = v.isInternal ? 'Nội bộ' : 'Vendor';
+
+        html += `
+            <label class="vendor-option" data-search="${v.name.toLowerCase()}">
+                <input type="checkbox" value="${v.id}" data-name="${v.name}" data-factor="${v.responseFactor}" data-qc="${v.defaultQcReject}">
+                <div class="vendor-info">
+                    <div class="vendor-name">${v.name}</div>
+                    <div class="vendor-desc">${v.description || ''}</div>
+                    <div class="vendor-meta">
+                        <span class="vendor-badge ${badgeClass}">${badgeText}</span>
+                        <span class="vendor-factor">Factor: ×${v.responseFactor.toFixed(2)}</span>
+                    </div>
+                </div>
+            </label>
+        `;
+    });
+
+    html += `</div>`;
+    html += `
+        <div class="dropdown-footer">
+            <button id="confirmPanelBtn" type="button">Xác nhận & Đóng</button>
+        </div>
+    `;
+
+    elements.panelDropdownPanel.innerHTML = html;
+
+    // Bind checkbox events
+    elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+        cb.addEventListener('change', updatePanelSelectionUI);
+    });
+
+    // Bind footer button
+    const confirmBtn = elements.panelDropdownPanel.querySelector('#confirmPanelBtn');
+    if (confirmBtn) {
+        confirmBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.panelDropdownPanel.classList.add('hidden');
+        });
+    }
+}
+
+function togglePanelDropdown(e) {
+    if (e && e.stopPropagation) e.stopPropagation();
+    elements.panelDropdownPanel.classList.toggle('hidden');
+}
+
+function updatePanelSelectionUI() {
+    const checkboxes = elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]:checked');
+    const selectedCount = checkboxes.length;
+
+    if (selectedCount === 0) {
+        elements.panelSelectedText.textContent = '-- Chọn panel vendors --';
+    } else {
+        const names = Array.from(checkboxes).map(cb => cb.dataset.name);
+        if (selectedCount <= 2) {
+            elements.panelSelectedText.textContent = names.join(', ');
+        } else {
+            elements.panelSelectedText.textContent = `${names[0]}, ${names[1]} +${selectedCount - 2}`;
+        }
+    }
+
+    // Trigger calculation
+    updateCalculation();
+}
+
+function getSelectedPanelVendorIds() {
+    if (!elements.panelDropdownPanel) return [];
+    const checkboxes = elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]:checked');
+    return Array.from(checkboxes).map(cb => cb.value);
+}
+
+// ============ TIMING CHECK ============
+function checkTimingWarning(startDate) {
+    if (!startDate || !elements.timingWarning) return;
+
+    const check = getQuickTimingCheck(startDate);
+
+    if (check.isHoliday) {
+        elements.timingWarning.innerHTML = check.message;
+        elements.timingWarning.className = 'timing-warning warning';
+        elements.timingWarning.classList.remove('hidden');
+    } else {
+        elements.timingWarning.innerHTML = check.message;
+        elements.timingWarning.className = 'timing-warning ok';
+        elements.timingWarning.classList.remove('hidden');
+    }
 }
 
 // ============ TEMPLATE SELECTION ============
@@ -492,7 +673,12 @@ function getFormInput() {
         ir: parseInt(elements.irInput.value) || 35,
         quota: getRadioValue(elements.quotaRadios),
         hardTarget: getRadioValue(elements.targetRadios) === 'hard',
-        locations: getSelectedLocationIds()
+        locations: getSelectedLocationIds(),
+        // Phase 1: Multi-factor inputs
+        panelVendors: getSelectedPanelVendorIds(),
+        quotaSkew: getRadioValue(elements.quotaSkewRadios) || 'balanced',
+        qcBuffer: parseInt(elements.qcBuffer?.value) || 10,
+        fwStartDate: elements.fwStartDate?.value ? new Date(elements.fwStartDate.value) : null
     };
 }
 
@@ -568,25 +754,83 @@ async function updateDetailedModeResults(input) {
 
     currentResult = matchedCase;
 
-    // Update UI
+    // Update UI - Difficulty and Case
     elements.resDifficulty.textContent = matchedCase.difficulty;
     elements.resCaseName.textContent = `Case #${matchedCase.order} - ${matchedCase.name}`;
     elements.resDaily.textContent = `~${matchedCase.samplesPerDay}`;
 
-    // Calculate FW days
-    const fwDays = calculateFWDays(input.sampleSize, matchedCase.samplesPerDay);
+    // ============ PHASE 1: MULTI-FACTOR CALCULATION ============
+    let factors = {
+        traffic: 1.0,
+        quotaSkew: 1.0,
+        qcBuffer: input.qcBuffer / 100,
+        timing: 1.0
+    };
 
-    // Add travel buffer
-    const buffer = currentLocationStats?.travelBuffer || 0;
-    const min = Math.ceil(fwDays.min + buffer);
-    const max = Math.ceil(fwDays.max + buffer);
-
-    elements.resDays.textContent = `${min}-${max} ngày`;
-    if (buffer > 0) {
-        elements.resDays.textContent += ` (+${buffer} travel)`;
+    // 1. Panel Vendor Factor
+    if (input.panelVendors && input.panelVendors.length > 0) {
+        try {
+            const vendorResult = await calculateVendorFactor(input.panelVendors);
+            factors.traffic = vendorResult.factor;
+            // Also adjust QC buffer if vendor has high default QC reject
+            if (vendorResult.avgQcReject > input.qcBuffer / 100) {
+                factors.qcBuffer = vendorResult.avgQcReject;
+                elements.qcValue.textContent = Math.round(vendorResult.avgQcReject * 100);
+            }
+        } catch (e) {
+            console.log('Vendor factor error, using default:', e.message);
+        }
     }
 
-    systemEstimate = { min: min, max: max };
+    // 2. Quota Skew Factor (inverse - higher skew = slower = lower daily rate)
+    const skewMultipliers = { balanced: 1.0, light_skew: 0.87, heavy_skew: 0.71 };
+    factors.quotaSkew = skewMultipliers[input.quotaSkew] || 1.0;
+
+    // 3. Timing Factor
+    if (input.fwStartDate) {
+        const timingResult = calculateTimingFactor(input.fwStartDate, 14); // Assume 14 days estimate
+        factors.timing = timingResult.factor;
+    }
+
+    // Calculate adjusted daily rate
+    const baseDaily = matchedCase.samplesPerDay;
+    const adjustedDaily = baseDaily * factors.traffic * factors.quotaSkew * factors.timing;
+
+    // Calculate required samples with QC buffer
+    const requiredWithQC = Math.ceil(input.sampleSize * (1 + factors.qcBuffer));
+
+    // Calculate FW days from adjusted rate
+    const travelBuffer = currentLocationStats?.travelBuffer || 0;
+    const fwDaysMin = Math.ceil((requiredWithQC / adjustedDaily) * 0.85 + travelBuffer);
+    const fwDaysMax = Math.ceil((requiredWithQC / adjustedDaily) * 1.15 + travelBuffer);
+
+    // Update results display
+    elements.resDays.textContent = `${fwDaysMin}-${fwDaysMax} ngày`;
+    if (travelBuffer > 0) {
+        elements.resDays.textContent += ` (+${travelBuffer} travel)`;
+    }
+
+    systemEstimate = { min: fwDaysMin, max: fwDaysMax };
+
+    // Update Factor Breakdown display
+    if (elements.factorTraffic) {
+        elements.factorTraffic.textContent = `×${factors.traffic.toFixed(2)}`;
+        elements.factorTraffic.className = factors.traffic >= 1 ? 'factor-value positive' : 'factor-value negative';
+    }
+    if (elements.factorQuota) {
+        elements.factorQuota.textContent = `×${factors.quotaSkew.toFixed(2)}`;
+        elements.factorQuota.className = factors.quotaSkew >= 1 ? 'factor-value' : 'factor-value negative';
+    }
+    if (elements.factorQC) {
+        elements.factorQC.textContent = `+${Math.round(factors.qcBuffer * 100)}%`;
+    }
+    if (elements.factorTiming) {
+        elements.factorTiming.textContent = `×${factors.timing.toFixed(2)}`;
+        elements.factorTiming.className = factors.timing >= 0.95 ? 'factor-value' : 'factor-value negative';
+    }
+    if (elements.adjustedDaily) {
+        elements.adjustedDaily.textContent = `~${Math.round(adjustedDaily)} samples/day`;
+    }
 
     // CPI Estimate
     const cpi = estimateCPI(input);
