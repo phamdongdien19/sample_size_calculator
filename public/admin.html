@@ -8,6 +8,46 @@
     <link rel="stylesheet" href="index.css">
     <link rel="stylesheet" href="admin.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- Auth Gate Script - Admin requires admin role -->
+    <script type="module">
+        import { onAuthChange, checkApproval, isAdmin } from './js/authService.js';
+
+        onAuthChange(async (user) => {
+            if (!user) {
+                window.location.href = 'login.html?redirect=admin.html';
+                return;
+            }
+
+            const status = await checkApproval();
+            const adminCheck = await isAdmin();
+
+            if (!status.approved || !adminCheck) {
+                alert('Bạn không có quyền truy cập Admin Panel. Chỉ admin được phép.');
+                window.location.href = 'index.html';
+                return;
+            }
+
+            document.body.classList.add('authenticated');
+        });
+    </script>
+
+    <style>
+        body:not(.authenticated) .app-container {
+            display: none;
+        }
+
+        body:not(.authenticated)::after {
+            content: 'Đang kiểm tra quyền admin...';
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            color: #6b7280;
+        }
+    </style>
 </head>
 
 <body>
@@ -45,11 +85,13 @@
             <div class="tabs">
                 <button class="tab-btn active" data-tab="cases">📋 Cases</button>
                 <button class="tab-btn" data-tab="locations">📍 Locations</button>
+                <button class="tab-btn" data-tab="audiences">🎯 Target Audience</button>
                 <button class="tab-btn" data-tab="templates">📄 Templates</button>
                 <button class="tab-btn" data-tab="vendors">🏢 Vendors</button>
                 <button class="tab-btn" data-tab="quotaSkew">📊 Quota Skew</button>
                 <button class="tab-btn" data-tab="timing">📅 Timing</button>
                 <button class="tab-btn" data-tab="history">📜 History</button>
+                <button class="tab-btn" data-tab="users">👥 Users</button>
             </div>
 
             <!-- CASES TAB -->
@@ -178,6 +220,36 @@
                 </div>
                 <div class="seed-section">
                     <button class="seed-btn" id="seedVendorsBtn">🌱 Tạo 6 Vendors mặc định</button>
+                </div>
+            </div>
+
+            <!-- TARGET AUDIENCE TAB -->
+            <div class="tab-content" id="audiencesTab">
+                <div class="tab-header">
+                    <h2>🎯 Quản lý Target Audience</h2>
+                    <button class="add-btn" id="addAudienceBtn">+ Thêm Audience</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="audiencesTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Tên</th>
+                                <th>IR Factor</th>
+                                <th>Difficulty</th>
+                                <th>Mô tả</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audiencesTableBody">
+                            <tr>
+                                <td colspan="6">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="seed-section">
+                    <button class="seed-btn" id="seedAudiencesBtn">🌱 Tạo 6 Audiences mặc định</button>
                 </div>
             </div>
 
@@ -310,6 +382,34 @@
                             </tr>
                         </thead>
                         <tbody id="historyTableBody">
+                            <tr>
+                                <td colspan="7">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- USERS TAB -->
+            <div class="tab-content" id="usersTab">
+                <div class="tab-header">
+                    <h2>👥 Quản lý Users (Phê duyệt truy cập)</h2>
+                    <button class="add-btn" id="refreshUsersBtn">🔄 Refresh</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Avatar</th>
+                                <th>Email</th>
+                                <th>Tên</th>
+                                <th>Role</th>
+                                <th>Trạng thái</th>
+                                <th>Ngày yêu cầu</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
                             <tr>
                                 <td colspan="7">Đang tải...</td>
                             </tr>

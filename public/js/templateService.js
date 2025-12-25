@@ -63,7 +63,8 @@ function getDefaultTemplates() {
                 loi: 15,
                 quota: 'nested',
                 hardTarget: false,
-                location: 'nationwide'
+                location: 'nationwide',
+                targetAudience: 'general'
             }
         },
         {
@@ -78,7 +79,8 @@ function getDefaultTemplates() {
                 loi: 10,
                 quota: 'simple',
                 hardTarget: false,
-                location: 'hcm'
+                location: 'hcm',
+                targetAudience: 'general'
             }
         },
         {
@@ -93,7 +95,8 @@ function getDefaultTemplates() {
                 loi: 8,
                 quota: 'simple',
                 hardTarget: false,
-                location: 'hcm'
+                location: 'hcm',
+                targetAudience: 'general'
             }
         },
         {
@@ -108,7 +111,8 @@ function getDefaultTemplates() {
                 loi: 20,
                 quota: 'nested',
                 hardTarget: false,
-                location: 'nationwide'
+                location: 'nationwide',
+                targetAudience: 'general'
             }
         },
         {
@@ -123,7 +127,8 @@ function getDefaultTemplates() {
                 loi: 12,
                 quota: 'simple',
                 hardTarget: false,
-                location: 'nationwide'
+                location: 'nationwide',
+                targetAudience: 'general'
             }
         },
         {
@@ -138,7 +143,8 @@ function getDefaultTemplates() {
                 loi: 20,
                 quota: 'simple',
                 hardTarget: true,
-                location: 'b2b'
+                location: 'nationwide',
+                targetAudience: 'b2b'
             }
         },
         {
@@ -153,7 +159,8 @@ function getDefaultTemplates() {
                 loi: 25,
                 quota: 'simple',
                 hardTarget: true,
-                location: 'healthcare'
+                location: 'nationwide',
+                targetAudience: 'healthcare'
             }
         },
         {
@@ -168,7 +175,8 @@ function getDefaultTemplates() {
                 loi: 15,
                 quota: 'simple',
                 hardTarget: false,
-                location: 'hcm'
+                location: 'hcm',
+                targetAudience: 'general'
             }
         }
     ];

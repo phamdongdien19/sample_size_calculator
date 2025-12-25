@@ -7,13 +7,17 @@ import { signInWithPopup, signOut, onAuthStateChanged } from 'https://www.gstati
 import {
     getAllCases, addCase, updateCase, deleteCase, seedDefaultCases,
     getAllLocations, addLocation, updateLocation, deleteLocation, seedDefaultLocations,
-    getAllTemplates, addTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates,
+    getAllTemplates, addTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates, saveTemplate,
     getAllHistory, deleteHistoryItem, clearAllHistory
 } from './adminService.js';
 // Phase 2: Import vendor and config services
 import { loadPanelVendors, saveVendor, deleteVendor, seedDefaultVendors, getDefaultVendors } from './panelVendorService.js';
 import { saveQuotaSkewConfig, loadQuotaSkewConfig } from './quotaSkewService.js';
 import { saveTimingConfig, loadTimingConfig } from './timingService.js';
+// Phase 3: Target Audience
+import { loadTargetAudiences, saveAudience, deleteAudience, seedDefaultAudiences, getDefaultAudiences } from './targetAudienceService.js';
+// Phase 4: User Management
+import { getAllUsers, approveUser as approveUserFn, removeUser as removeUserFn, OWNER_EMAIL } from './authService.js';
 
 // ============ STATE ============
 let currentUser = null;
@@ -81,7 +85,11 @@ const elements = {
     holiday30Apr: document.getElementById('holiday30Apr'),
     holidayHungVuong: document.getElementById('holidayHungVuong'),
     holidayNational: document.getElementById('holidayNational'),
-    holidayChristmas: document.getElementById('holidayChristmas')
+    holidayChristmas: document.getElementById('holidayChristmas'),
+    // Phase 3: Target Audience
+    audiencesTableBody: document.getElementById('audiencesTableBody'),
+    addAudienceBtn: document.getElementById('addAudienceBtn'),
+    seedAudiencesBtn: document.getElementById('seedAudiencesBtn')
 };
 
 // ============ INITIALIZATION ============
@@ -130,6 +138,10 @@ function setupEventListeners() {
     if (elements.seedVendorsBtn) elements.seedVendorsBtn.addEventListener('click', onSeedVendors);
     if (elements.saveQuotaSkewBtn) elements.saveQuotaSkewBtn.addEventListener('click', onSaveQuotaSkew);
     if (elements.saveTimingBtn) elements.saveTimingBtn.addEventListener('click', onSaveTimingConfig);
+
+    // Phase 3: Target Audience buttons
+    if (elements.addAudienceBtn) elements.addAudienceBtn.addEventListener('click', () => openModal('audience', null));
+    if (elements.seedAudiencesBtn) elements.seedAudiencesBtn.addEventListener('click', onSeedAudiences);
 }
 
 // ============ AUTH ============
@@ -192,8 +204,10 @@ async function loadAllData() {
         loadTemplates(),
         loadHistory(),
         loadVendors(),
+        loadAudiences(),
         loadQuotaSkewSettings(),
-        loadTimingSettings()
+        loadTimingSettings(),
+        loadUsers()
     ]);
 }
 
@@ -446,41 +460,234 @@ function getModalForm(type) {
     }
 
     if (type === 'template') {
-        return '<p>Template edit form coming soon...</p>';
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID (không dấu)</label>
+                    <input type="text" id="formTemplateId" placeholder="brand_health" ${editingId ? 'disabled' : ''}>
+                </div>
+                <div class="form-group">
+                    <label>Order</label>
+                    <input type="number" id="formTemplateOrder" value="1" min="1">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Icon (emoji)</label>
+                    <input type="text" id="formTemplateIcon" placeholder="📊" maxlength="4">
+                </div>
+                <div class="form-group">
+                    <label>Tên Template</label>
+                    <input type="text" id="formTemplateName" placeholder="Brand Health Check">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Mô tả</label>
+                <input type="text" id="formTemplateDesc" placeholder="Đo lường sức khỏe thương hiệu">
+            </div>
+            <hr style="margin: 16px 0; border-color: #e0e0e0;">
+            <h4 style="margin-bottom: 12px;">📋 Giá trị mặc định</h4>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Sample Size</label>
+                    <input type="number" id="formTemplateSample" placeholder="300">
+                </div>
+                <div class="form-group">
+                    <label>IR (%)</label>
+                    <input type="number" id="formTemplateIR" placeholder="30" min="1" max="100">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>LOI (phút)</label>
+                    <input type="number" id="formTemplateLOI" placeholder="15">
+                </div>
+                <div class="form-group">
+                    <label>Quota</label>
+                    <select id="formTemplateQuota">
+                        <option value="simple">Simple</option>
+                        <option value="nested">Nested</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Hard Target</label>
+                    <select id="formTemplateHardTarget">
+                        <option value="false">Thường</option>
+                        <option value="true">Khó</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Location mặc định</label>
+                    <select id="formTemplateLocation">
+                        <option value="hcm">TP. Hồ Chí Minh</option>
+                        <option value="hanoi">Hà Nội</option>
+                        <option value="danang">Đà Nẵng</option>
+                        <option value="nationwide">Toàn quốc</option>
+                        <option value="urban_t2">Urban Tier 2</option>
+                        <option value="rural">Rural</option>
+                    </select>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>🎯 Target Audience</label>
+                <select id="formTemplateAudience">
+                    <option value="general">General Population</option>
+                    <option value="youth">Youth (15-24)</option>
+                    <option value="senior">Senior (55+)</option>
+                    <option value="high_income">High Income</option>
+                    <option value="b2b">B2B Decision Makers</option>
+                    <option value="healthcare">Healthcare Professionals</option>
+                </select>
+                <small style="color: #666;">Ảnh hưởng đến IR Factor và độ khó estimate</small>
+            </div>
+        `;
+    }
+
+    if (type === 'vendor') {
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID (không dấu)</label>
+                    <input type="text" id="formVendorId" placeholder="purespectrum" ${editingId ? 'disabled' : ''}>
+                </div>
+                <div class="form-group">
+                    <label>Order</label>
+                    <input type="number" id="formVendorOrder" value="1" min="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Tên Vendor</label>
+                <input type="text" id="formVendorName" placeholder="Purespectrum">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Response Factor (×)</label>
+                    <input type="number" id="formVendorResponseFactor" step="0.1" min="0.1" max="3" value="1.0" placeholder="1.0">
+                    <small style="color: #666;">Cao hơn = nhanh hơn</small>
+                </div>
+                <div class="form-group">
+                    <label>QC Reject Default (%)</label>
+                    <input type="number" id="formVendorQcReject" step="1" min="0" max="100" value="10" placeholder="10">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Loại</label>
+                <select id="formVendorIsInternal">
+                    <option value="false">Vendor (bên ngoài)</option>
+                    <option value="true">Nội bộ (Internal)</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Mô tả</label>
+                <input type="text" id="formVendorDesc" placeholder="Mô tả ngắn về vendor">
+            </div>
+            <div class="form-group">
+                <label>Ưu điểm (cách nhau bằng dấu phẩy)</label>
+                <input type="text" id="formVendorPros" placeholder="Response cao, Setup nhanh">
+            </div>
+            <div class="form-group">
+                <label>Nhược điểm (cách nhau bằng dấu phẩy)</label>
+                <input type="text" id="formVendorCons" placeholder="Giá cao, QC loại nhiều">
+            </div>
+        `;
+    }
+
+    if (type === 'audience') {
+        return `
+            <div class="form-row">
+                <div class="form-group">
+                    <label>ID (không dấu)</label>
+                    <input type="text" id="formAudienceId" placeholder="b2b, healthcare..." ${editingId ? 'disabled' : ''}>
+                </div>
+                <div class="form-group">
+                    <label>Order</label>
+                    <input type="number" id="formAudienceOrder" value="1" min="1">
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Tên Audience</label>
+                <input type="text" id="formAudienceName" placeholder="B2B Decision Makers">
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>IR Factor (×)</label>
+                    <input type="number" id="formAudienceIrFactor" step="0.05" min="0.05" max="1" value="1.0">
+                    <small style="color: #666;">Thấp hơn = khó reach hơn (0.05 - 1.0)</small>
+                </div>
+                <div class="form-group">
+                    <label>Difficulty Multiplier (×)</label>
+                    <input type="number" id="formAudienceDifficulty" step="0.1" min="1" max="3" value="1.0">
+                    <small style="color: #666;">Cao hơn = cần nhiều ngày hơn (1.0 - 3.0)</small>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Mô tả</label>
+                <input type="text" id="formAudienceDesc" placeholder="Lãnh đạo doanh nghiệp, người ra quyết định">
+            </div>
+            <div class="form-group">
+                <label>Ghi chú</label>
+                <input type="text" id="formAudienceNotes" placeholder="IR rất thấp, cần panel chuyên biệt">
+            </div>
+        `;
     }
 
     return '<p>Form not implemented yet.</p>';
 }
 
 async function onModalSave() {
-    if (editingType === 'case') {
-        const data = {
-            order: parseInt(document.getElementById('formOrder').value),
-            name: document.getElementById('formName').value,
-            difficulty: document.getElementById('formDifficulty').value,
-            conditions: {
-                ir: {
-                    min: parseInt(document.getElementById('formIrMin').value),
-                    max: parseInt(document.getElementById('formIrMax').value)
-                },
-                sample: {
-                    min: parseInt(document.getElementById('formSampleMin').value),
-                    max: parseInt(document.getElementById('formSampleMax').value)
-                },
-                loi: {
-                    min: parseInt(document.getElementById('formLoiMin').value),
-                    max: parseInt(document.getElementById('formLoiMax').value)
-                },
-                quota: document.getElementById('formQuota').value,
-                hardTarget: document.getElementById('formHardTarget').value === 'true'
-            },
-            samplesPerDay: parseInt(document.getElementById('formSamplesPerDay').value),
-            fwDaysMin: parseInt(document.getElementById('formFwMin').value),
-            fwDaysMax: parseInt(document.getElementById('formFwMax').value),
-            suggestions: []
-        };
+    const saveBtn = elements.modalSave;
+    const originalText = saveBtn.textContent;
 
-        try {
+    // Show loading state
+    saveBtn.textContent = '⏳ Đang lưu...';
+    saveBtn.disabled = true;
+
+    try {
+        if (editingType === 'case') {
+            // Validation
+            const name = document.getElementById('formName').value.trim();
+            const difficulty = document.getElementById('formDifficulty').value.trim();
+            const irMin = parseInt(document.getElementById('formIrMin').value);
+            const irMax = parseInt(document.getElementById('formIrMax').value);
+
+            if (!name) {
+                throw new Error('Vui lòng nhập tên case');
+            }
+            if (!difficulty) {
+                throw new Error('Vui lòng nhập độ khó');
+            }
+            if (irMin > irMax) {
+                throw new Error('IR Min không thể lớn hơn IR Max');
+            }
+
+            const data = {
+                order: parseInt(document.getElementById('formOrder').value) || 1,
+                name: name,
+                difficulty: difficulty,
+                conditions: {
+                    ir: {
+                        min: irMin || 0,
+                        max: irMax || 100
+                    },
+                    sample: {
+                        min: parseInt(document.getElementById('formSampleMin').value) || 0,
+                        max: parseInt(document.getElementById('formSampleMax').value) || 9999
+                    },
+                    loi: {
+                        min: parseInt(document.getElementById('formLoiMin').value) || 0,
+                        max: parseInt(document.getElementById('formLoiMax').value) || 60
+                    },
+                    quota: document.getElementById('formQuota').value,
+                    hardTarget: document.getElementById('formHardTarget').value === 'true'
+                },
+                samplesPerDay: parseInt(document.getElementById('formSamplesPerDay').value) || 20,
+                fwDaysMin: parseInt(document.getElementById('formFwMin').value) || 5,
+                fwDaysMax: parseInt(document.getElementById('formFwMax').value) || 10,
+                suggestions: []
+            };
+
             if (editingId) {
                 await updateCase(editingId, data);
             } else {
@@ -489,36 +696,112 @@ async function onModalSave() {
             closeModal();
             await loadCases();
             alert('Đã lưu thành công!');
-        } catch (error) {
-            alert('Lỗi: ' + error.message);
-        }
-    } else if (editingType === 'location') {
-        const id = document.getElementById('formLocId').value;
-        const data = {
-            name: document.getElementById('formLocName').value,
-            tier: parseInt(document.getElementById('formLocTier').value),
-            defaultIR: parseInt(document.getElementById('formLocDefaultIR').value),
-            irRange: {
-                min: parseInt(document.getElementById('formLocIrMin').value),
-                max: parseInt(document.getElementById('formLocIrMax').value)
-            },
-            samplesPerDay: parseInt(document.getElementById('formLocSamplesPerDay').value),
-            notes: document.getElementById('formLocNotes').value
-        };
+        } else if (editingType === 'location') {
+            const id = document.getElementById('formLocId').value;
+            const data = {
+                name: document.getElementById('formLocName').value,
+                tier: parseInt(document.getElementById('formLocTier').value),
+                defaultIR: parseInt(document.getElementById('formLocDefaultIR').value),
+                irRange: {
+                    min: parseInt(document.getElementById('formLocIrMin').value),
+                    max: parseInt(document.getElementById('formLocIrMax').value)
+                },
+                samplesPerDay: parseInt(document.getElementById('formLocSamplesPerDay').value),
+                notes: document.getElementById('formLocNotes').value
+            };
 
-        try {
-            if (editingId) {
-                await updateLocation(editingId, data);
-            } else {
-                if (!id) throw new Error('Vui lòng nhập ID');
-                await addLocation(id, data);
+            try {
+                if (editingId) {
+                    await updateLocation(editingId, data);
+                } else {
+                    if (!id) throw new Error('Vui lòng nhập ID');
+                    await addLocation(id, data);
+                }
+                closeModal();
+                await loadLocations();
+                alert('Đã lưu location thành công!');
+            } catch (error) {
+                alert('Lỗi: ' + error.message);
             }
+        } else if (editingType === 'vendor') {
+            const id = editingId || document.getElementById('formVendorId').value;
+            const data = {
+                id: id,
+                name: document.getElementById('formVendorName').value,
+                order: parseInt(document.getElementById('formVendorOrder').value) || 1,
+                responseFactor: parseFloat(document.getElementById('formVendorResponseFactor').value) || 1.0,
+                defaultQcReject: (parseFloat(document.getElementById('formVendorQcReject').value) || 10) / 100,
+                isInternal: document.getElementById('formVendorIsInternal').value === 'true',
+                description: document.getElementById('formVendorDesc').value,
+                pros: document.getElementById('formVendorPros').value.split(',').map(s => s.trim()).filter(s => s),
+                cons: document.getElementById('formVendorCons').value.split(',').map(s => s.trim()).filter(s => s)
+            };
+
+            try {
+                if (!id) throw new Error('Vui lòng nhập ID');
+                await saveVendor(data);
+                closeModal();
+                await loadVendors();
+                alert('Đã lưu vendor thành công!');
+            } catch (error) {
+                alert('Lỗi: ' + error.message);
+            }
+        } else if (editingType === 'template') {
+            const id = editingId || document.getElementById('formTemplateId').value;
+            const data = {
+                id: id,
+                name: document.getElementById('formTemplateName').value,
+                order: parseInt(document.getElementById('formTemplateOrder').value) || 1,
+                icon: document.getElementById('formTemplateIcon').value || '📋',
+                description: document.getElementById('formTemplateDesc').value,
+                defaults: {
+                    sampleSize: parseInt(document.getElementById('formTemplateSample').value) || 300,
+                    ir: parseInt(document.getElementById('formTemplateIR').value) || 30,
+                    loi: parseInt(document.getElementById('formTemplateLOI').value) || 15,
+                    quota: document.getElementById('formTemplateQuota').value,
+                    hardTarget: document.getElementById('formTemplateHardTarget').value === 'true',
+                    location: document.getElementById('formTemplateLocation').value || 'hcm',
+                    targetAudience: document.getElementById('formTemplateAudience').value || 'general'
+                }
+            };
+
+            try {
+                if (!id) throw new Error('Vui lòng nhập ID');
+                await saveTemplate(data);
+                closeModal();
+                await loadTemplates();
+                alert('Đã lưu template thành công!');
+            } catch (error) {
+                alert('Lỗi: ' + error.message);
+            }
+        } else if (editingType === 'audience') {
+            const id = editingId || document.getElementById('formAudienceId').value.trim();
+            const name = document.getElementById('formAudienceName').value.trim();
+
+            if (!id) throw new Error('Vui lòng nhập ID');
+            if (!name) throw new Error('Vui lòng nhập tên audience');
+
+            const data = {
+                id: id,
+                name: name,
+                order: parseInt(document.getElementById('formAudienceOrder').value) || 1,
+                irFactor: parseFloat(document.getElementById('formAudienceIrFactor').value) || 1.0,
+                difficultyMultiplier: parseFloat(document.getElementById('formAudienceDifficulty').value) || 1.0,
+                description: document.getElementById('formAudienceDesc').value || '',
+                notes: document.getElementById('formAudienceNotes').value || ''
+            };
+
+            await saveAudience(data);
             closeModal();
-            await loadLocations();
-            alert('Đã lưu location thành công!');
-        } catch (error) {
-            alert('Lỗi: ' + error.message);
+            await loadAudiences();
+            alert('Đã lưu audience thành công!');
         }
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    } finally {
+        // Restore save button state
+        saveBtn.textContent = originalText;
+        saveBtn.disabled = false;
     }
 }
 
@@ -574,7 +857,41 @@ async function onClearHistory() {
 // ============ GLOBAL FUNCTIONS (for inline onclick) ============
 window.editCase = async (id) => {
     openModal('case', id);
-    // TODO: Pre-fill form with existing data
+    // Pre-fill form with existing data
+    const cases = await getAllCases();
+    const caseData = cases.find(c => c.id === id);
+    if (caseData) {
+        setTimeout(() => {
+            const orderField = document.getElementById('formOrder');
+            if (orderField) orderField.value = caseData.order || 1;
+            const nameField = document.getElementById('formName');
+            if (nameField) nameField.value = caseData.name || '';
+            const diffField = document.getElementById('formDifficulty');
+            if (diffField) diffField.value = caseData.difficulty || '';
+            const irMinField = document.getElementById('formIrMin');
+            if (irMinField) irMinField.value = caseData.conditions?.ir?.min || '';
+            const irMaxField = document.getElementById('formIrMax');
+            if (irMaxField) irMaxField.value = caseData.conditions?.ir?.max || '';
+            const sampleMinField = document.getElementById('formSampleMin');
+            if (sampleMinField) sampleMinField.value = caseData.conditions?.sample?.min || '';
+            const sampleMaxField = document.getElementById('formSampleMax');
+            if (sampleMaxField) sampleMaxField.value = caseData.conditions?.sample?.max || '';
+            const loiMinField = document.getElementById('formLoiMin');
+            if (loiMinField) loiMinField.value = caseData.conditions?.loi?.min || '';
+            const loiMaxField = document.getElementById('formLoiMax');
+            if (loiMaxField) loiMaxField.value = caseData.conditions?.loi?.max || '';
+            const quotaField = document.getElementById('formQuota');
+            if (quotaField) quotaField.value = caseData.conditions?.quota || 'simple';
+            const hardTargetField = document.getElementById('formHardTarget');
+            if (hardTargetField) hardTargetField.value = caseData.conditions?.hardTarget ? 'true' : 'false';
+            const spdField = document.getElementById('formSamplesPerDay');
+            if (spdField) spdField.value = caseData.samplesPerDay || '';
+            const fwMinField = document.getElementById('formFwMin');
+            if (fwMinField) fwMinField.value = caseData.fwDaysMin || '';
+            const fwMaxField = document.getElementById('formFwMax');
+            if (fwMaxField) fwMaxField.value = caseData.fwDaysMax || '';
+        }, 50);
+    }
 };
 
 window.deleteCase = async (id) => {
@@ -589,6 +906,29 @@ window.deleteCase = async (id) => {
 
 window.editLocation = async (id) => {
     openModal('location', id);
+    // Pre-fill form with existing data
+    const locations = await getAllLocations();
+    const location = locations.find(l => l.id === id);
+    if (location) {
+        setTimeout(() => {
+            const idField = document.getElementById('formLocId');
+            if (idField) idField.value = location.id || '';
+            const nameField = document.getElementById('formLocName');
+            if (nameField) nameField.value = location.name || '';
+            const tierField = document.getElementById('formLocTier');
+            if (tierField) tierField.value = location.tier || 1;
+            const irField = document.getElementById('formLocDefaultIR');
+            if (irField) irField.value = location.defaultIR || 30;
+            const irMinField = document.getElementById('formLocIrMin');
+            if (irMinField) irMinField.value = location.irRange?.min || '';
+            const irMaxField = document.getElementById('formLocIrMax');
+            if (irMaxField) irMaxField.value = location.irRange?.max || '';
+            const spdField = document.getElementById('formLocSamplesPerDay');
+            if (spdField) spdField.value = location.samplesPerDay || '';
+            const notesField = document.getElementById('formLocNotes');
+            if (notesField) notesField.value = location.notes || '';
+        }, 50);
+    }
 };
 
 window.deleteLocation = async (id) => {
@@ -603,6 +943,37 @@ window.deleteLocation = async (id) => {
 
 window.editTemplate = async (id) => {
     openModal('template', id);
+    // Pre-fill form with existing data
+    const templates = await getAllTemplates();
+    const template = templates.find(t => t.id === id);
+    if (template) {
+        setTimeout(() => {
+            const idField = document.getElementById('formTemplateId');
+            if (idField) idField.value = template.id;
+            const nameField = document.getElementById('formTemplateName');
+            if (nameField) nameField.value = template.name || '';
+            const orderField = document.getElementById('formTemplateOrder');
+            if (orderField) orderField.value = template.order || 1;
+            const iconField = document.getElementById('formTemplateIcon');
+            if (iconField) iconField.value = template.icon || '📋';
+            const descField = document.getElementById('formTemplateDesc');
+            if (descField) descField.value = template.description || '';
+            const sampleField = document.getElementById('formTemplateSample');
+            if (sampleField) sampleField.value = template.defaults?.sampleSize || 300;
+            const irField = document.getElementById('formTemplateIR');
+            if (irField) irField.value = template.defaults?.ir || 30;
+            const loiField = document.getElementById('formTemplateLOI');
+            if (loiField) loiField.value = template.defaults?.loi || 15;
+            const quotaField = document.getElementById('formTemplateQuota');
+            if (quotaField) quotaField.value = template.defaults?.quota || 'simple';
+            const hardTargetField = document.getElementById('formTemplateHardTarget');
+            if (hardTargetField) hardTargetField.value = template.defaults?.hardTarget ? 'true' : 'false';
+            const locationField = document.getElementById('formTemplateLocation');
+            if (locationField) locationField.value = template.defaults?.location || 'hcm';
+            const audienceField = document.getElementById('formTemplateAudience');
+            if (audienceField) audienceField.value = template.defaults?.targetAudience || 'general';
+        }, 50);
+    }
 };
 
 window.deleteTemplate = async (id) => {
@@ -668,6 +1039,31 @@ async function onSeedVendors() {
 
 window.editVendor = async (id) => {
     openModal('vendor', id);
+    // Pre-fill form with existing data
+    const vendors = await loadPanelVendors();
+    const vendor = vendors.find(v => v.id === id);
+    if (vendor) {
+        setTimeout(() => {
+            const idField = document.getElementById('formVendorId');
+            if (idField) idField.value = vendor.id;
+            const nameField = document.getElementById('formVendorName');
+            if (nameField) nameField.value = vendor.name || '';
+            const orderField = document.getElementById('formVendorOrder');
+            if (orderField) orderField.value = vendor.order || 1;
+            const rfField = document.getElementById('formVendorResponseFactor');
+            if (rfField) rfField.value = vendor.responseFactor || 1.0;
+            const qcField = document.getElementById('formVendorQcReject');
+            if (qcField) qcField.value = Math.round((vendor.defaultQcReject || 0.1) * 100);
+            const internalField = document.getElementById('formVendorIsInternal');
+            if (internalField) internalField.value = vendor.isInternal ? 'true' : 'false';
+            const descField = document.getElementById('formVendorDesc');
+            if (descField) descField.value = vendor.description || '';
+            const prosField = document.getElementById('formVendorPros');
+            if (prosField) prosField.value = (vendor.pros || []).join(', ');
+            const consField = document.getElementById('formVendorCons');
+            if (consField) consField.value = (vendor.cons || []).join(', ');
+        }, 50);
+    }
 };
 
 window.deleteVendorItem = async (id) => {
@@ -675,6 +1071,81 @@ window.deleteVendorItem = async (id) => {
     try {
         await deleteVendor(id);
         await loadVendors();
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+};
+
+// ============ PHASE 3: TARGET AUDIENCE ============
+async function loadAudiences() {
+    if (!elements.audiencesTableBody) return;
+
+    elements.audiencesTableBody.innerHTML = '<tr><td colspan="6">Đang tải...</td></tr>';
+
+    const audiences = await loadTargetAudiences();
+
+    if (audiences.length === 0) {
+        elements.audiencesTableBody.innerHTML = '<tr><td colspan="6">Chưa có audiences. Nhấn "Tạo 6 Audiences mặc định" bên dưới.</td></tr>';
+        return;
+    }
+
+    elements.audiencesTableBody.innerHTML = audiences.map(a => `
+        <tr>
+            <td>${a.order || 0}</td>
+            <td><strong>${a.name}</strong></td>
+            <td><strong>×${a.irFactor?.toFixed(2)}</strong></td>
+            <td><span class="badge ${a.difficultyMultiplier > 1.5 ? 'hard' : a.difficultyMultiplier > 1 ? 'medium' : 'easy'}">×${a.difficultyMultiplier?.toFixed(1)}</span></td>
+            <td>${a.description || '-'}</td>
+            <td class="actions">
+                <button class="btn-edit" onclick="editAudience('${a.id}')">Sửa</button>
+                <button class="btn-delete" onclick="deleteAudienceItem('${a.id}')">Xóa</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function onSeedAudiences() {
+    if (!confirm('Tạo 6 audiences mặc định (General, Youth, Senior, High Income, B2B, Healthcare)?')) return;
+
+    try {
+        const count = await seedDefaultAudiences();
+        alert(`Đã tạo ${count} audiences thành công!`);
+        await loadAudiences();
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
+
+window.editAudience = async (id) => {
+    openModal('audience', id);
+    // Pre-fill form with existing data
+    const audiences = await loadTargetAudiences();
+    const audience = audiences.find(a => a.id === id);
+    if (audience) {
+        setTimeout(() => {
+            const idField = document.getElementById('formAudienceId');
+            if (idField) idField.value = audience.id;
+            const nameField = document.getElementById('formAudienceName');
+            if (nameField) nameField.value = audience.name || '';
+            const orderField = document.getElementById('formAudienceOrder');
+            if (orderField) orderField.value = audience.order || 1;
+            const irField = document.getElementById('formAudienceIrFactor');
+            if (irField) irField.value = audience.irFactor || 1.0;
+            const diffField = document.getElementById('formAudienceDifficulty');
+            if (diffField) diffField.value = audience.difficultyMultiplier || 1.0;
+            const descField = document.getElementById('formAudienceDesc');
+            if (descField) descField.value = audience.description || '';
+            const notesField = document.getElementById('formAudienceNotes');
+            if (notesField) notesField.value = audience.notes || '';
+        }, 50);
+    }
+};
+
+window.deleteAudienceItem = async (id) => {
+    if (!confirm('Xóa audience này?')) return;
+    try {
+        await deleteAudience(id);
+        await loadAudiences();
     } catch (error) {
         alert('Lỗi: ' + error.message);
     }
@@ -789,5 +1260,100 @@ async function onSaveTimingConfig() {
     }
 }
 
+// ============ USER MANAGEMENT ============
+async function loadUsers() {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+
+    tbody.innerHTML = '<tr><td colspan="7">Đang tải...</td></tr>';
+
+    try {
+        const users = await getAllUsers();
+        renderUsers(users);
+    } catch (error) {
+        console.error('Error loading users:', error);
+        tbody.innerHTML = '<tr><td colspan="7">Lỗi tải danh sách users</td></tr>';
+    }
+}
+
+function renderUsers(users) {
+    const tbody = document.getElementById('usersTableBody');
+    if (!tbody) return;
+
+    if (!users || users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7">Chưa có user nào</td></tr>';
+        return;
+    }
+
+    // Sort: pending first, then by date
+    users.sort((a, b) => {
+        if (a.approved !== b.approved) return a.approved ? 1 : -1;
+        return (b.requestedAt?.toDate() || 0) - (a.requestedAt?.toDate() || 0);
+    });
+
+    tbody.innerHTML = users.map(user => {
+        const requestDate = user.requestedAt?.toDate?.()?.toLocaleDateString('vi-VN') || 'N/A';
+        const isOwner = user.email === OWNER_EMAIL;
+        const status = user.approved
+            ? '<span style="color: #10b981; font-weight: 600;">✅ Đã duyệt</span>'
+            : '<span style="color: #f59e0b; font-weight: 600;">⏳ Chờ duyệt</span>';
+
+        const actions = isOwner
+            ? '<span style="color: #6b7280; font-style: italic;">Owner</span>'
+            : user.approved
+                ? `<button class="action-btn danger" onclick="rejectUserAction('${user.email}')">❌ Xoá</button>`
+                : `<button class="action-btn success" onclick="approveUserAction('${user.email}')">✅ Duyệt</button>
+                   <button class="action-btn danger" onclick="rejectUserAction('${user.email}')">❌ Từ chối</button>`;
+
+        return `
+            <tr>
+                <td><img src="${user.photoURL || 'https://via.placeholder.com/40'}" alt="Avatar" style="width:40px;height:40px;border-radius:50%"></td>
+                <td>${user.email}</td>
+                <td>${user.displayName || 'N/A'}</td>
+                <td>${user.role || 'user'}</td>
+                <td>${status}</td>
+                <td>${requestDate}</td>
+                <td>${actions}</td>
+            </tr>
+        `;
+    }).join('');
+}
+
+window.approveUserAction = async function (email) {
+    if (!confirm(`Duyệt truy cập cho ${email}?`)) return;
+
+    try {
+        const result = await approveUserFn(email);
+        if (result.success) {
+            alert('Đã duyệt user thành công!');
+            loadUsers();
+        } else {
+            alert('Lỗi: ' + result.error);
+        }
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
+
+window.rejectUserAction = async function (email) {
+    if (!confirm(`Xoá/Từ chối truy cập của ${email}?`)) return;
+
+    try {
+        const result = await removeUserFn(email);
+        if (result.success) {
+            alert('Đã xoá user!');
+            loadUsers();
+        } else {
+            alert('Lỗi: ' + result.error);
+        }
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
+
+// Setup refresh users button
+document.getElementById('refreshUsersBtn')?.addEventListener('click', loadUsers);
+
 // ============ START ============
 init();
+

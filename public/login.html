@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Đăng nhập | FW Tools</title>
+    <link rel="stylesheet" href="index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f8fafc 0%, #e0e7ff 100%);
+            padding: 20px;
+        }
+
+        .login-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            padding: 48px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .login-logo {
+            width: 180px;
+            margin-bottom: 24px;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin-bottom: 8px;
+        }
+
+        .login-subtitle {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 32px;
+        }
+
+        .google-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            padding: 14px 24px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .google-btn:hover {
+            border-color: #4285f4;
+            background: #f8fafc;
+            box-shadow: 0 4px 12px rgba(66, 133, 244, 0.2);
+        }
+
+        .google-btn img {
+            width: 24px;
+            height: 24px;
+        }
+
+        .status-message {
+            margin-top: 24px;
+            padding: 16px;
+            border-radius: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-message.error {
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+        }
+
+        .status-message.pending {
+            background: #fef3c7;
+            color: #92400e;
+            border: 1px solid #fde68a;
+        }
+
+        .status-message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .login-footer {
+            margin-top: 32px;
+            padding-top: 24px;
+            border-top: 1px solid #e5e7eb;
+            font-size: 0.75rem;
+            color: #9ca3af;
+        }
+
+        .login-footer a {
+            color: #6366f1;
+            text-decoration: none;
+        }
+
+        .login-footer a:hover {
+            text-decoration: underline;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 16px;
+            background: #f9fafb;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+
+        .user-info img {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+        }
+
+        .user-info-text {
+            text-align: left;
+        }
+
+        .user-info-text .name {
+            font-weight: 600;
+            color: #1f2937;
+        }
+
+        .user-info-text .email {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+
+        .logout-btn {
+            width: 100%;
+            padding: 12px;
+            background: #f3f4f6;
+            border: none;
+            border-radius: 8px;
+            color: #374151;
+            font-weight: 500;
+            cursor: pointer;
+            margin-top: 12px;
+        }
+
+        .logout-btn:hover {
+            background: #e5e7eb;
+        }
+
+        .continue-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-top: 16px;
+        }
+
+        .continue-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(99, 102, 241, 0.4);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="login-container">
+        <div class="login-card">
+            <img src="logo.png" alt="FW Tools" class="login-logo">
+            <h1 class="login-title">Sample Size Calculator</h1>
+            <p class="login-subtitle">Đăng nhập để sử dụng công cụ</p>
+
+            <!-- Login Section -->
+            <div id="loginSection">
+                <button class="google-btn" id="googleBtn">
+                    <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                    Đăng nhập với Google
+                </button>
+            </div>
+
+            <!-- User Info Section (hidden initially) -->
+            <div id="userSection" class="hidden">
+                <div class="user-info">
+                    <img id="userPhoto" src="" alt="Avatar">
+                    <div class="user-info-text">
+                        <div class="name" id="userName"></div>
+                        <div class="email" id="userEmail"></div>
+                    </div>
+                </div>
+                <button class="continue-btn hidden" id="continueBtn">Tiếp tục vào ứng dụng</button>
+                <button class="logout-btn" id="logoutBtn">Đăng xuất</button>
+            </div>
+
+            <!-- Status Message -->
+            <div id="statusMessage" class="status-message hidden"></div>
+
+            <div class="login-footer">
+                © 2024 dien.pham Fieldwork Tools<br>
+                <a href="mailto:phamdongdien19@gmail.com">phamdongdien19@gmail.com</a>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { signInWithGoogle, logOut, checkApproval, onAuthChange } from './js/authService.js';
+
+        const loginSection = document.getElementById('loginSection');
+        const userSection = document.getElementById('userSection');
+        const statusMessage = document.getElementById('statusMessage');
+        const googleBtn = document.getElementById('googleBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const continueBtn = document.getElementById('continueBtn');
+        const userPhoto = document.getElementById('userPhoto');
+        const userName = document.getElementById('userName');
+        const userEmail = document.getElementById('userEmail');
+
+        // Get redirect URL from query params
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectTo = urlParams.get('redirect') || 'index.html';
+
+        function showStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message ${type}`;
+            statusMessage.classList.remove('hidden');
+        }
+
+        function showUserInfo(user, approved) {
+            loginSection.classList.add('hidden');
+            userSection.classList.remove('hidden');
+
+            userPhoto.src = user.photoURL || 'https://via.placeholder.com/56';
+            userName.textContent = user.displayName || 'User';
+            userEmail.textContent = user.email;
+
+            if (approved) {
+                continueBtn.classList.remove('hidden');
+            } else {
+                continueBtn.classList.add('hidden');
+            }
+        }
+
+        // Google Sign-In
+        googleBtn.addEventListener('click', async () => {
+            googleBtn.disabled = true;
+            googleBtn.textContent = 'Đang đăng nhập...';
+
+            const result = await signInWithGoogle();
+
+            if (result.success) {
+                showUserInfo(result.user, result.approved);
+                if (result.approved) {
+                    showStatus(result.message, 'success');
+                } else {
+                    showStatus(result.message, 'pending');
+                }
+            } else {
+                showStatus('Lỗi đăng nhập: ' + result.error, 'error');
+                googleBtn.disabled = false;
+                googleBtn.innerHTML = '<img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google"> Đăng nhập với Google';
+            }
+        });
+
+        // Logout
+        logoutBtn.addEventListener('click', async () => {
+            await logOut();
+            loginSection.classList.remove('hidden');
+            userSection.classList.add('hidden');
+            statusMessage.classList.add('hidden');
+        });
+
+        // Continue to app
+        continueBtn.addEventListener('click', () => {
+            window.location.href = redirectTo;
+        });
+
+        // Check if already logged in
+        onAuthChange(async (user) => {
+            if (user) {
+                const status = await checkApproval();
+                showUserInfo(user, status.approved);
+                if (status.approved) {
+                    showStatus('Đã đăng nhập. Nhấn "Tiếp tục" để vào ứng dụng.', 'success');
+                } else {
+                    showStatus('Tài khoản đang chờ phê duyệt. Vui lòng liên hệ admin.', 'pending');
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>

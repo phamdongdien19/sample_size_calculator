@@ -13,12 +13,15 @@ import { saveCalculation, getRecentHistory } from './js/historyService.js';
 import { loadPanelVendors, getDefaultVendors, calculateVendorFactor } from './js/panelVendorService.js';
 import { getQuickTimingCheck, calculateTimingFactor } from './js/timingService.js';
 import { loadQuotaSkewConfig, getQuotaSkewMultiplier, getDefaultQuotaSkew } from './js/quotaSkewService.js';
+// Phase 2: Target Audience
+import { loadTargetAudiences, getAudience, calculateAudienceImpact } from './js/targetAudienceService.js';
 
 // ============ STATE ============
 let currentMode = 'quick'; // 'quick' or 'detailed'
 let currentResult = null;
 let systemEstimate = { min: 0, max: 0 };
 let currentLocationStats = null; // { defaultIR, range, samplesPerDay, travelBuffer }
+let currentTargetAudience = 'general'; // Target Audience ID from template
 
 // ============ DOM ELEMENTS ============
 const elements = {
@@ -31,6 +34,11 @@ const elements = {
 
     // Template & Location
     templateSelect: document.getElementById('templateSelect'),
+    // Audience Indicator
+    audienceIndicator: document.getElementById('audienceIndicator'),
+    audienceNameDisplay: document.getElementById('audienceNameDisplay'),
+    audienceBadge: document.getElementById('audienceBadge'),
+    audienceFactorDisplay: document.getElementById('audienceFactorDisplay'),
     // Location Multi-Select
     locationMultiSelect: document.getElementById('locationMultiSelect'),
     locationSelectBox: document.getElementById('locationSelectBox'),
@@ -101,15 +109,23 @@ const elements = {
 };
 
 // ============ INITIALIZATION ============
+let currentPage = 1;
+const projectsPerPage = 10;
+let currentProjectId = null;
+
 async function init() {
     console.log('Initializing Sample Size Calculator v3...');
 
     // Load data (with fallbacks)
     await loadDropdowns();
+    await loadProjectList(1);  // Load first page of projects
     await loadHistory();
 
     // Setup event listeners
     setupEventListeners();
+
+    // Set initial mode (Quick Mode by default)
+    switchMode('quick');
 
     // Initial calculation
     updateCalculation();
@@ -248,6 +264,12 @@ function setupEventListeners() {
 
     // Save button
     elements.saveBtn.addEventListener('click', onSave);
+
+    // New Project button
+    const newProjectBtn = document.getElementById('newProjectBtn');
+    if (newProjectBtn) {
+        newProjectBtn.addEventListener('click', createNewProject);
+    }
 
     // Phase 1: Panel Vendor Multi-Select
     if (elements.panelSelectBox) {
@@ -567,7 +589,60 @@ async function onTemplateSelect() {
         }
     }
 
+    // Set target audience from template and update indicator
+    currentTargetAudience = d.targetAudience || 'general';
+    await updateAudienceIndicator(currentTargetAudience);
+
     updateCalculation();
+}
+
+// Update audience indicator display
+async function updateAudienceIndicator(audienceId) {
+    if (!elements.audienceIndicator) return;
+
+    if (!audienceId || audienceId === '') {
+        elements.audienceIndicator.classList.add('hidden');
+        return;
+    }
+
+    try {
+        const audience = await getAudience(audienceId);
+
+        if (audience) {
+            elements.audienceIndicator.classList.remove('hidden');
+            elements.audienceNameDisplay.textContent = audience.name || audienceId;
+
+            // Determine difficulty badge
+            const diff = audience.difficultyMultiplier || 1.0;
+            let badgeText, badgeClass;
+            if (diff <= 1.2) {
+                badgeText = '🟢 Dễ';
+                badgeClass = 'easy';
+            } else if (diff <= 1.8) {
+                badgeText = '🟡 Trung bình';
+                badgeClass = 'medium';
+            } else {
+                badgeText = '🔴 Khó';
+                badgeClass = 'hard';
+            }
+
+            elements.audienceBadge.textContent = badgeText;
+            elements.audienceBadge.className = 'audience-badge ' + badgeClass;
+
+            elements.audienceFactorDisplay.textContent =
+                `IR Factor: ×${(audience.irFactor || 1.0).toFixed(2)} | Difficulty: ×${diff.toFixed(1)}`;
+        } else {
+            // Show default for unknown audience
+            elements.audienceIndicator.classList.remove('hidden');
+            elements.audienceNameDisplay.textContent = audienceId;
+            elements.audienceBadge.textContent = '🟢 Dễ';
+            elements.audienceBadge.className = 'audience-badge easy';
+            elements.audienceFactorDisplay.textContent = 'IR Factor: ×1.00 | Difficulty: ×1.0';
+        }
+    } catch (e) {
+        console.log('Error fetching audience:', e);
+        elements.audienceIndicator.classList.add('hidden');
+    }
 }
 
 function updateLocationSelectionUI() {
@@ -678,7 +753,9 @@ function getFormInput() {
         panelVendors: getSelectedPanelVendorIds(),
         quotaSkew: getRadioValue(elements.quotaSkewRadios) || 'balanced',
         qcBuffer: parseInt(elements.qcBuffer?.value) || 10,
-        fwStartDate: elements.fwStartDate?.value ? new Date(elements.fwStartDate.value) : null
+        fwStartDate: elements.fwStartDate?.value ? new Date(elements.fwStartDate.value) : null,
+        // Phase 2: Target Audience
+        targetAudience: currentTargetAudience
     };
 }
 
@@ -764,7 +841,8 @@ async function updateDetailedModeResults(input) {
         traffic: 1.0,
         quotaSkew: 1.0,
         qcBuffer: input.qcBuffer / 100,
-        timing: 1.0
+        timing: 1.0,
+        audience: 1.0 // Target Audience difficulty factor
     };
 
     // 1. Panel Vendor Factor
@@ -792,9 +870,20 @@ async function updateDetailedModeResults(input) {
         factors.timing = timingResult.factor;
     }
 
+    // 4. Target Audience Factor
+    if (input.targetAudience && input.targetAudience !== 'general') {
+        try {
+            const audienceImpact = await calculateAudienceImpact(input.targetAudience);
+            // difficultyMultiplier > 1 means harder, so we divide to slow down daily rate
+            factors.audience = 1 / audienceImpact.difficultyMultiplier;
+        } catch (e) {
+            console.log('Audience factor error, using default:', e.message);
+        }
+    }
+
     // Calculate adjusted daily rate
     const baseDaily = matchedCase.samplesPerDay;
-    const adjustedDaily = baseDaily * factors.traffic * factors.quotaSkew * factors.timing;
+    const adjustedDaily = baseDaily * factors.traffic * factors.quotaSkew * factors.timing * factors.audience;
 
     // Calculate required samples with QC buffer
     const requiredWithQC = Math.ceil(input.sampleSize * (1 + factors.qcBuffer));
@@ -923,12 +1012,12 @@ async function onSave() {
         projectName: input.projectName,
         mode: currentMode,
         input: {
-            sampleSize: input.sampleSize,
-            ir: input.ir,
-            loi: input.loi,
-            quota: input.quota,
-            hardTarget: input.hardTarget,
-            location: input.location
+            sampleSize: input.sampleSize || 0,
+            ir: input.ir || 35,
+            loi: input.loi || 15,
+            quota: input.quota || 'simple',
+            hardTarget: input.hardTarget || false,
+            location: input.location || ''
         },
         systemResult: {
             caseId: currentResult?.id,
@@ -951,8 +1040,12 @@ async function onSave() {
         elements.saveStatus.textContent = '✅ Đã lưu thành công!';
         elements.saveStatus.style.color = '#10b981';
 
-        // Reload history
+        // Show and populate summary table
+        populateSummaryTable(input, expertDays);
+
+        // Reload history and project list
         await loadHistory();
+        await loadProjectList(1);
 
         // Clear form for next calculation
         setTimeout(() => {
@@ -988,13 +1081,17 @@ function renderHistory(history) {
         return;
     }
 
-    elements.historyList.innerHTML = history.map(item => {
+    elements.historyList.innerHTML = history.map((item, idx) => {
         const date = item.createdAt instanceof Date
             ? item.createdAt.toLocaleDateString('vi-VN')
             : 'N/A';
 
+        // Store item data in a global array for click handler
+        if (!window.historyData) window.historyData = [];
+        window.historyData[idx] = item;
+
         return `
-            <div class="history-item">
+            <div class="history-item" onclick="loadHistoryItem(${idx})" style="cursor: pointer;" title="Click để xem chi tiết">
                 <div>
                     <div class="project-name">${item.projectName}</div>
                     <div class="date">${date}</div>
@@ -1003,6 +1100,387 @@ function renderHistory(history) {
             </div>
         `;
     }).join('');
+}
+
+// Load history item into form
+window.loadHistoryItem = function (idx) {
+    const item = window.historyData?.[idx];
+    if (!item) return;
+
+    // Switch to detailed mode to show all fields
+    switchMode('detailed');
+
+    // Populate form fields
+    if (elements.projectName) elements.projectName.value = item.projectName || '';
+    if (elements.sampleSize) elements.sampleSize.value = item.input?.sampleSize || '';
+    if (elements.loi) elements.loi.value = item.input?.loi || '';
+    if (elements.irInput) {
+        elements.irInput.value = item.input?.ir || 35;
+        elements.irValue.textContent = item.input?.ir || 35;
+    }
+    if (elements.expertDays) elements.expertDays.value = item.expertConclusion?.fwDays || '';
+    if (elements.expertNote) elements.expertNote.value = item.expertConclusion?.note || '';
+
+    // Set quota radio
+    const quotaValue = item.input?.quota || 'simple';
+    const quotaRadio = document.querySelector(`input[name="quota"][value="${quotaValue}"]`);
+    if (quotaRadio) {
+        quotaRadio.checked = true;
+        quotaRadio.closest('.radio-card')?.classList.add('selected');
+    }
+
+    // Set target radio
+    const targetValue = item.input?.hardTarget ? 'hard' : 'normal';
+    const targetRadio = document.querySelector(`input[name="target"][value="${targetValue}"]`);
+    if (targetRadio) {
+        targetRadio.checked = true;
+        targetRadio.closest('.radio-card')?.classList.add('selected');
+    }
+
+    // Trigger calculation
+    updateCalculation();
+
+    // Show notification
+    const status = document.getElementById('saveStatus');
+    if (status) {
+        status.textContent = '📜 Đã load dự án: ' + item.projectName;
+        status.style.color = '#3b82f6';
+        setTimeout(() => { status.textContent = ''; }, 3000);
+    }
+}
+
+// ============ SUMMARY TABLE ============
+function populateSummaryTable(input, expertDays) {
+    const container = document.getElementById('summaryTableContainer');
+    const tbody = document.getElementById('summaryTableBody');
+    if (!container || !tbody) return;
+
+    // Show the table
+    container.classList.remove('hidden');
+
+    // Get location names
+    const locationCheckboxes = elements.locationDropdownPanel.querySelectorAll('input[type="checkbox"]:checked');
+    const locationNames = Array.from(locationCheckboxes).map(cb => cb.dataset.name).join(', ') || '--';
+
+    // Get audience name
+    const audienceName = elements.audienceNameDisplay?.textContent || currentTargetAudience;
+
+    // Get factor values from display
+    const panelFactor = elements.factorTraffic?.textContent || '×1.00';
+    const quotaSkew = elements.factorQuota?.textContent || '×1.00';
+    const qcBuffer = elements.factorQC?.textContent || '+10%';
+    const timingFactor = elements.factorTiming?.textContent || '×1.00';
+    const adjustedDaily = elements.adjustedDaily?.textContent || '-- samples/day';
+    const audienceFactor = elements.audienceFactorDisplay?.textContent?.split('|')[1]?.trim() || '×1.0';
+
+    // Define table rows data
+    const tableData = [
+        { section: '📌 Thông tin dự án' },
+        { label: 'Tên dự án', value: input.projectName || '--' },
+        { label: 'Sample Size (N)', value: input.sampleSize || '--' },
+        { label: 'LOI', value: (input.loi || '--') + ' phút' },
+        { label: 'IR', value: (input.ir || '--') + '%' },
+
+        { section: '🎯 Target & Quota' },
+        { label: 'Location', value: locationNames },
+        { label: 'Target Audience', value: audienceName },
+        { label: 'Quota Structure', value: input.quota === 'nested' ? 'Nested (Interlocking)' : 'Simple' },
+        { label: 'Hard Target', value: input.hardTarget ? 'Có' : 'Không' },
+
+        { section: '📊 Factors Applied' },
+        { label: 'Panel Source Factor', value: panelFactor },
+        { label: 'Quota Skew Factor', value: quotaSkew },
+        { label: 'QC Buffer', value: qcBuffer },
+        { label: 'Timing Factor', value: timingFactor },
+        { label: 'Audience Difficulty', value: audienceFactor },
+
+        { section: '✅ Kết quả', isResult: true },
+        { label: 'Case / Độ khó', value: currentResult?.difficulty || '--', isResult: true },
+        { label: 'Adjusted Daily Rate', value: adjustedDaily, isResult: true },
+        { label: 'FW Days (Estimate)', value: `${systemEstimate.min}-${systemEstimate.max} ngày`, isResult: true, isHighlight: true },
+        { label: 'FW Days (Expert)', value: `${expertDays} ngày`, isResult: true, isHighlight: true },
+        { label: 'CPI Estimate', value: elements.resCPI?.textContent || '$ --', isResult: true },
+        { label: 'Ghi chú', value: elements.expertNote?.value || '--', isResult: true }
+    ];
+
+    // Generate HTML
+    let html = '';
+    tableData.forEach((row, idx) => {
+        if (row.section) {
+            // Section header row (no delete button)
+            const resultClass = row.isResult ? 'result-section' : '';
+            html += `<tr class="section-header ${resultClass}" data-section="true">
+                <td colspan="3">${row.section}</td>
+            </tr>`;
+        } else {
+            // Data row with editable value and delete button
+            const rowClass = row.isResult ? 'result-row' : '';
+            const highlightClass = row.isHighlight ? 'highlight' : '';
+            const valueStyle = row.isHighlight ? 'font-weight: bold;' : '';
+
+            html += `<tr class="${rowClass} ${highlightClass}" data-row-idx="${idx}">
+                <td>${row.label}</td>
+                <td contenteditable="true" style="${valueStyle}">${row.value}</td>
+                <td class="delete-cell">
+                    <button type="button" class="delete-row-btn" onclick="this.closest('tr').remove()" title="Xoá dòng này">🗑️</button>
+                </td>
+            </tr>`;
+        }
+    });
+
+    tbody.innerHTML = html;
+
+    // Scroll to summary table
+    container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// Copy summary table as HTML for Gmail
+function copySummaryToClipboard() {
+    const table = document.getElementById('summaryTable');
+    if (!table) return;
+
+    // Create a clean HTML table for Gmail compatibility
+    const rows = table.querySelectorAll('tr');
+    let html = '<table style="border-collapse: collapse; width: 100%; font-family: Arial, sans-serif; font-size: 14px;">';
+
+    rows.forEach(row => {
+        html += '<tr>';
+        const cells = row.querySelectorAll('td');
+        cells.forEach((cell, idx) => {
+            // Skip delete column (index 2)
+            if (idx >= 2) return;
+
+            let colspan = cell.getAttribute('colspan') || 1;
+            // Adjust colspan for section headers (was 3, now 2)
+            if (colspan > 2) colspan = 2;
+
+            const isHeader = row.classList.contains('section-header');
+            const isResult = row.classList.contains('result-row');
+            const isHighlight = row.classList.contains('highlight');
+
+            let bgColor = '#ffffff';
+            let fontWeight = 'normal';
+            let color = '#333333';
+
+            if (isHeader) {
+                bgColor = '#e0e7ff';
+                fontWeight = 'bold';
+                color = '#4338ca';
+            } else if (isHighlight) {
+                bgColor = '#dcfce7';
+                fontWeight = 'bold';
+                color = '#059669';
+            } else if (isResult) {
+                bgColor = '#f0fdf4';
+            } else if (idx === 0) {
+                bgColor = '#f9fafb';
+                color = '#6b7280';
+            }
+
+            html += `<td style="border: 1px solid #e5e7eb; padding: 10px 16px; background: ${bgColor}; font-weight: ${fontWeight}; color: ${color};"${colspan > 1 ? ` colspan="${colspan}"` : ''}>${cell.textContent}</td>`;
+        });
+        html += '</tr>';
+    });
+
+    html += '</table>';
+
+    // Copy as both HTML and plain text
+    const blob = new Blob([html], { type: 'text/html' });
+    const item = new ClipboardItem({ 'text/html': blob });
+
+    navigator.clipboard.write([item]).then(() => {
+        const btn = document.getElementById('copySummaryBtn');
+        btn.textContent = '✅ Đã copy!';
+        btn.classList.add('copied');
+        setTimeout(() => {
+            btn.textContent = '📋 Copy';
+            btn.classList.remove('copied');
+        }, 2000);
+    }).catch(err => {
+        console.error('Copy failed:', err);
+        // Fallback to plain text
+        navigator.clipboard.writeText(table.innerText);
+        alert('Đã copy dạng text. Để copy HTML, hãy dùng Chrome.');
+    });
+}
+
+// Setup copy button listener
+document.getElementById('copySummaryBtn')?.addEventListener('click', copySummaryToClipboard);
+
+// ============ PROJECT LIST (SIDEBAR) ============
+window.loadProjectList = async function (page = 1) {
+    currentPage = page;
+    const projectList = document.getElementById('projectList');
+    if (!projectList) return;
+
+    projectList.innerHTML = '<p class="placeholder">Đang tải...</p>';
+
+    try {
+        const history = await getRecentHistory(50); // Get up to 50 projects
+        const totalProjects = history.length;
+        const totalPages = Math.ceil(totalProjects / projectsPerPage);
+
+        // Calculate pagination
+        const startIdx = (page - 1) * projectsPerPage;
+        const endIdx = startIdx + projectsPerPage;
+        const pageProjects = history.slice(startIdx, endIdx);
+
+        if (pageProjects.length === 0) {
+            projectList.innerHTML = '<p class="placeholder">Chưa có dự án nào</p>';
+        } else {
+            renderProjectCards(pageProjects, startIdx);
+        }
+
+        renderPagination(page, totalPages);
+
+    } catch (e) {
+        console.error('Error loading projects:', e);
+        projectList.innerHTML = '<p class="placeholder">Lỗi tải dự án</p>';
+    }
+}
+
+function renderProjectCards(projects, startIdx) {
+    const projectList = document.getElementById('projectList');
+    if (!projectList) return;
+
+    projectList.innerHTML = projects.map((item, idx) => {
+        const date = item.createdAt instanceof Date
+            ? item.createdAt.toLocaleDateString('vi-VN')
+            : 'N/A';
+
+        const fwDays = item.expertConclusion?.fwDays || item.systemResult?.fwDaysMin || '--';
+        const difficulty = item.systemResult?.difficulty || 'Trung bình';
+
+        // Determine difficulty class
+        let diffClass = 'medium';
+        if (difficulty.includes('Dễ') || difficulty.includes('Easy')) diffClass = 'easy';
+        else if (difficulty.includes('Khó') || difficulty.includes('Hard')) diffClass = 'hard';
+
+        const isActive = currentProjectId === item.id;
+
+        // Store in global for click handler
+        if (!window.projectData) window.projectData = {};
+        window.projectData[startIdx + idx] = item;
+
+        return `
+            <div class="project-card ${isActive ? 'active' : ''}" onclick="selectProject(${startIdx + idx})" title="${item.projectName}">
+                <div class="project-name">${item.projectName || 'Untitled'}</div>
+                <div class="project-meta">
+                    <span class="project-date">${date}</span>
+                    <span class="project-days">${fwDays} ngày</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+function renderPagination(currentPage, totalPages) {
+    const pagination = document.getElementById('pagination');
+    if (!pagination || totalPages <= 1) {
+        if (pagination) pagination.innerHTML = '';
+        return;
+    }
+
+    pagination.innerHTML = `
+        <button onclick="loadProjectList(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>&lt;</button>
+        <span class="page-info">${currentPage}/${totalPages}</span>
+        <button onclick="loadProjectList(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>&gt;</button>
+    `;
+}
+
+window.selectProject = function (idx) {
+    const item = window.projectData?.[idx];
+    if (!item) return;
+
+    currentProjectId = item.id;
+
+    // Update active state in UI
+    document.querySelectorAll('.project-card').forEach(card => card.classList.remove('active'));
+    event?.target?.closest('.project-card')?.classList.add('active');
+
+    // Switch to detailed mode
+    switchMode('detailed');
+
+    // Populate form
+    if (elements.projectName) elements.projectName.value = item.projectName || '';
+    if (elements.sampleSize) elements.sampleSize.value = item.input?.sampleSize || '';
+    if (elements.loi) elements.loi.value = item.input?.loi || '';
+    if (elements.irInput) {
+        elements.irInput.value = item.input?.ir || 35;
+        elements.irValue.textContent = item.input?.ir || 35;
+    }
+    if (elements.expertDays) elements.expertDays.value = item.expertConclusion?.fwDays || '';
+    if (elements.expertNote) elements.expertNote.value = item.expertConclusion?.note || '';
+
+    // Set quota radio
+    const quotaValue = item.input?.quota || 'simple';
+    document.querySelectorAll('input[name="quota"]').forEach(r => {
+        r.checked = r.value === quotaValue;
+        r.closest('.radio-card')?.classList.toggle('selected', r.value === quotaValue);
+    });
+
+    // Set target radio
+    const targetValue = item.input?.hardTarget ? 'hard' : 'normal';
+    document.querySelectorAll('input[name="target"]').forEach(r => {
+        r.checked = r.value === targetValue;
+        r.closest('.radio-card')?.classList.toggle('selected', r.value === targetValue);
+    });
+
+    // Trigger calculation
+    updateCalculation();
+
+    // Show notification
+    const status = document.getElementById('saveStatus');
+    if (status) {
+        status.textContent = '📂 Đã load: ' + item.projectName;
+        status.style.color = '#3b82f6';
+        setTimeout(() => { status.textContent = ''; }, 3000);
+    }
+}
+
+function createNewProject() {
+    currentProjectId = null;
+
+    // Clear active state
+    document.querySelectorAll('.project-card').forEach(card => card.classList.remove('active'));
+
+    // Switch to quick mode
+    switchMode('quick');
+
+    // Reset form
+    if (elements.projectName) elements.projectName.value = '';
+    if (elements.sampleSize) elements.sampleSize.value = '';
+    if (elements.loi) elements.loi.value = '';
+    if (elements.irInput) {
+        elements.irInput.value = 35;
+        elements.irValue.textContent = 35;
+    }
+    if (elements.expertDays) elements.expertDays.value = '';
+    if (elements.expertNote) elements.expertNote.value = '';
+
+    // Reset radios
+    document.querySelectorAll('input[name="quota"]').forEach(r => {
+        r.checked = r.value === 'simple';
+        r.closest('.radio-card')?.classList.toggle('selected', r.value === 'simple');
+    });
+    document.querySelectorAll('input[name="target"]').forEach(r => {
+        r.checked = r.value === 'normal';
+        r.closest('.radio-card')?.classList.toggle('selected', r.value === 'normal');
+    });
+
+    // Hide summary table
+    const summaryContainer = document.getElementById('summaryTableContainer');
+    if (summaryContainer) summaryContainer.classList.add('hidden');
+
+    // Show notification
+    const status = document.getElementById('saveStatus');
+    if (status) {
+        status.textContent = '✨ Bắt đầu estimate mới';
+        status.style.color = '#10b981';
+        setTimeout(() => { status.textContent = ''; }, 2000);
+    }
+
+    updateCalculation();
 }
 
 // ============ START ============

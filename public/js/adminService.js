@@ -140,6 +140,11 @@ export async function deleteTemplate(id) {
     return deleteItem('project_templates', id);
 }
 
+export async function saveTemplate(template) {
+    const templateRef = doc(db, 'project_templates', template.id);
+    await setDoc(templateRef, template);
+}
+
 export async function seedDefaultTemplates() {
     const templates = getDefaultTemplates();
     for (const t of templates) {
