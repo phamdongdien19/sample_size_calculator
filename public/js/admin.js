@@ -10,6 +10,10 @@ import {
     getAllTemplates, addTemplate, updateTemplate, deleteTemplate, seedDefaultTemplates,
     getAllHistory, deleteHistoryItem, clearAllHistory
 } from './adminService.js';
+// Phase 2: Import vendor and config services
+import { loadPanelVendors, saveVendor, deleteVendor, seedDefaultVendors, getDefaultVendors } from './panelVendorService.js';
+import { saveQuotaSkewConfig, loadQuotaSkewConfig } from './quotaSkewService.js';
+import { saveTimingConfig, loadTimingConfig } from './timingService.js';
 
 // ============ STATE ============
 let currentUser = null;
@@ -53,7 +57,31 @@ const elements = {
     modalBody: document.getElementById('modalBody'),
     modalClose: document.getElementById('modalClose'),
     modalCancel: document.getElementById('modalCancel'),
-    modalSave: document.getElementById('modalSave')
+    modalSave: document.getElementById('modalSave'),
+
+    // Phase 2: Vendors, Quota Skew, Timing
+    vendorsTableBody: document.getElementById('vendorsTableBody'),
+    addVendorBtn: document.getElementById('addVendorBtn'),
+    seedVendorsBtn: document.getElementById('seedVendorsBtn'),
+    saveQuotaSkewBtn: document.getElementById('saveQuotaSkewBtn'),
+    saveTimingBtn: document.getElementById('saveTimingBtn'),
+    // Quota Skew inputs
+    skewBalanced: document.getElementById('skewBalanced'),
+    skewLight: document.getElementById('skewLight'),
+    skewHeavy: document.getElementById('skewHeavy'),
+    // Timing inputs
+    dayMon: document.getElementById('dayMon'),
+    dayTue: document.getElementById('dayTue'),
+    dayWed: document.getElementById('dayWed'),
+    dayThu: document.getElementById('dayThu'),
+    dayFri: document.getElementById('dayFri'),
+    daySat: document.getElementById('daySat'),
+    daySun: document.getElementById('daySun'),
+    holidayTet: document.getElementById('holidayTet'),
+    holiday30Apr: document.getElementById('holiday30Apr'),
+    holidayHungVuong: document.getElementById('holidayHungVuong'),
+    holidayNational: document.getElementById('holidayNational'),
+    holidayChristmas: document.getElementById('holidayChristmas')
 };
 
 // ============ INITIALIZATION ============
@@ -96,6 +124,12 @@ function setupEventListeners() {
     elements.modalOverlay.addEventListener('click', (e) => {
         if (e.target === elements.modalOverlay) closeModal();
     });
+
+    // Phase 2: Vendor, Quota Skew, Timing buttons
+    if (elements.addVendorBtn) elements.addVendorBtn.addEventListener('click', () => openModal('vendor', null));
+    if (elements.seedVendorsBtn) elements.seedVendorsBtn.addEventListener('click', onSeedVendors);
+    if (elements.saveQuotaSkewBtn) elements.saveQuotaSkewBtn.addEventListener('click', onSaveQuotaSkew);
+    if (elements.saveTimingBtn) elements.saveTimingBtn.addEventListener('click', onSaveTimingConfig);
 }
 
 // ============ AUTH ============
@@ -156,7 +190,10 @@ async function loadAllData() {
         loadCases(),
         loadLocations(),
         loadTemplates(),
-        loadHistory()
+        loadHistory(),
+        loadVendors(),
+        loadQuotaSkewSettings(),
+        loadTimingSettings()
     ]);
 }
 
@@ -587,6 +624,170 @@ window.deleteHistory = async (id) => {
         alert('Lỗi: ' + error.message);
     }
 };
+
+// ============ PHASE 2: VENDORS ============
+async function loadVendors() {
+    if (!elements.vendorsTableBody) return;
+
+    elements.vendorsTableBody.innerHTML = '<tr><td colspan="7">Đang tải...</td></tr>';
+
+    const vendors = await loadPanelVendors();
+
+    if (vendors.length === 0) {
+        elements.vendorsTableBody.innerHTML = '<tr><td colspan="7">Chưa có vendors. Nhấn "Tạo 6 Vendors mặc định" bên dưới.</td></tr>';
+        return;
+    }
+
+    elements.vendorsTableBody.innerHTML = vendors.map(v => `
+        <tr>
+            <td>${v.order || 0}</td>
+            <td><strong>${v.name}</strong></td>
+            <td><span class="badge ${v.isInternal ? 'internal' : 'external'}">${v.isInternal ? 'Nội bộ' : 'Vendor'}</span></td>
+            <td><strong>×${v.responseFactor?.toFixed(2)}</strong></td>
+            <td>${Math.round((v.defaultQcReject || 0) * 100)}%</td>
+            <td>${v.description || '-'}</td>
+            <td class="actions">
+                <button class="btn-edit" onclick="editVendor('${v.id}')">Sửa</button>
+                <button class="btn-delete" onclick="deleteVendorItem('${v.id}')">Xóa</button>
+            </td>
+        </tr>
+    `).join('');
+}
+
+async function onSeedVendors() {
+    if (!confirm('Tạo 6 vendors mặc định (IFM, Purespectrum, Opinionmind, Paneland, Infosec, Fulcrum)?')) return;
+
+    try {
+        const count = await seedDefaultVendors();
+        alert(`Đã tạo ${count} vendors thành công!`);
+        await loadVendors();
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
+
+window.editVendor = async (id) => {
+    openModal('vendor', id);
+};
+
+window.deleteVendorItem = async (id) => {
+    if (!confirm('Xóa vendor này?')) return;
+    try {
+        await deleteVendor(id);
+        await loadVendors();
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+};
+
+// ============ PHASE 2: QUOTA SKEW CONFIG ============
+async function loadQuotaSkewSettings() {
+    try {
+        const config = await loadQuotaSkewConfig();
+        if (config && Array.isArray(config)) {
+            const balanced = config.find(c => c.id === 'balanced');
+            const light = config.find(c => c.id === 'light_skew');
+            const heavy = config.find(c => c.id === 'heavy_skew');
+
+            if (elements.skewBalanced && balanced) elements.skewBalanced.value = balanced.multiplier;
+            if (elements.skewLight && light) elements.skewLight.value = light.multiplier;
+            if (elements.skewHeavy && heavy) elements.skewHeavy.value = heavy.multiplier;
+        }
+    } catch (error) {
+        console.error('Error loading quota skew settings:', error);
+    }
+}
+
+async function onSaveQuotaSkew() {
+    try {
+        const options = [
+            {
+                id: 'balanced',
+                name: 'Balanced',
+                description: 'Phân bổ đều (50/50), Age trải đều',
+                multiplier: parseFloat(elements.skewBalanced?.value) || 1.0,
+                order: 1
+            },
+            {
+                id: 'light_skew',
+                name: 'Skew nhẹ',
+                description: '70/30 hoặc chênh lệch nhẹ',
+                multiplier: parseFloat(elements.skewLight?.value) || 1.15,
+                order: 2
+            },
+            {
+                id: 'heavy_skew',
+                name: 'Skew nặng',
+                description: 'Target rất hẹp, khó fill',
+                multiplier: parseFloat(elements.skewHeavy?.value) || 1.4,
+                order: 3
+            }
+        ];
+
+        await saveQuotaSkewConfig(options);
+        alert('Đã lưu cấu hình Quota Skew thành công!');
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
+
+// ============ PHASE 2: TIMING CONFIG ============
+async function loadTimingSettings() {
+    try {
+        const config = await loadTimingConfig();
+        if (!config) return;
+
+        // Day factors
+        if (config.dayFactors) {
+            if (elements.daySun) elements.daySun.value = config.dayFactors[0] || 1.1;
+            if (elements.dayMon) elements.dayMon.value = config.dayFactors[1] || 0.85;
+            if (elements.dayTue) elements.dayTue.value = config.dayFactors[2] || 0.85;
+            if (elements.dayWed) elements.dayWed.value = config.dayFactors[3] || 1.0;
+            if (elements.dayThu) elements.dayThu.value = config.dayFactors[4] || 1.0;
+            if (elements.dayFri) elements.dayFri.value = config.dayFactors[5] || 0.95;
+            if (elements.daySat) elements.daySat.value = config.dayFactors[6] || 1.1;
+        }
+
+        // Holiday factors
+        if (config.holidayFactors) {
+            if (elements.holidayTet) elements.holidayTet.value = config.holidayFactors.tet || 1.8;
+            if (elements.holiday30Apr) elements.holiday30Apr.value = config.holidayFactors.apr30 || 1.25;
+            if (elements.holidayHungVuong) elements.holidayHungVuong.value = config.holidayFactors.hungVuong || 1.1;
+            if (elements.holidayNational) elements.holidayNational.value = config.holidayFactors.national || 1.15;
+            if (elements.holidayChristmas) elements.holidayChristmas.value = config.holidayFactors.christmas || 1.1;
+        }
+    } catch (error) {
+        console.error('Error loading timing settings:', error);
+    }
+}
+
+async function onSaveTimingConfig() {
+    try {
+        const config = {
+            dayFactors: {
+                0: parseFloat(elements.daySun?.value) || 1.1,
+                1: parseFloat(elements.dayMon?.value) || 0.85,
+                2: parseFloat(elements.dayTue?.value) || 0.85,
+                3: parseFloat(elements.dayWed?.value) || 1.0,
+                4: parseFloat(elements.dayThu?.value) || 1.0,
+                5: parseFloat(elements.dayFri?.value) || 0.95,
+                6: parseFloat(elements.daySat?.value) || 1.1
+            },
+            holidayFactors: {
+                tet: parseFloat(elements.holidayTet?.value) || 1.8,
+                apr30: parseFloat(elements.holiday30Apr?.value) || 1.25,
+                hungVuong: parseFloat(elements.holidayHungVuong?.value) || 1.1,
+                national: parseFloat(elements.holidayNational?.value) || 1.15,
+                christmas: parseFloat(elements.holidayChristmas?.value) || 1.1
+            }
+        };
+
+        await saveTimingConfig(config);
+        alert('Đã lưu cấu hình Timing thành công!');
+    } catch (error) {
+        alert('Lỗi: ' + error.message);
+    }
+}
 
 // ============ START ============
 init();

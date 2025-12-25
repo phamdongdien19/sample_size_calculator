@@ -46,6 +46,9 @@
                 <button class="tab-btn active" data-tab="cases">📋 Cases</button>
                 <button class="tab-btn" data-tab="locations">📍 Locations</button>
                 <button class="tab-btn" data-tab="templates">📄 Templates</button>
+                <button class="tab-btn" data-tab="vendors">🏢 Vendors</button>
+                <button class="tab-btn" data-tab="quotaSkew">📊 Quota Skew</button>
+                <button class="tab-btn" data-tab="timing">📅 Timing</button>
                 <button class="tab-btn" data-tab="history">📜 History</button>
             </div>
 
@@ -144,6 +147,146 @@
                 </div>
                 <div class="seed-section">
                     <button class="seed-btn" id="seedTemplatesBtn">🌱 Tạo Templates mặc định</button>
+                </div>
+            </div>
+
+            <!-- VENDORS TAB -->
+            <div class="tab-content" id="vendorsTab">
+                <div class="tab-header">
+                    <h2>🏢 Quản lý Panel Vendors</h2>
+                    <button class="add-btn" id="addVendorBtn">+ Thêm Vendor</button>
+                </div>
+                <div class="table-container">
+                    <table class="data-table" id="vendorsTable">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Tên</th>
+                                <th>Loại</th>
+                                <th>Response Factor</th>
+                                <th>QC Reject Default</th>
+                                <th>Mô tả</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vendorsTableBody">
+                            <tr>
+                                <td colspan="7">Đang tải...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="seed-section">
+                    <button class="seed-btn" id="seedVendorsBtn">🌱 Tạo 6 Vendors mặc định</button>
+                </div>
+            </div>
+
+            <!-- QUOTA SKEW TAB -->
+            <div class="tab-content" id="quotaSkewTab">
+                <div class="tab-header">
+                    <h2>📊 Cấu hình Quota Skew</h2>
+                </div>
+                <div class="config-cards">
+                    <div class="config-card">
+                        <h3>⚖️ Balanced</h3>
+                        <p>Phân bổ đều (50/50), Age trải đều</p>
+                        <div class="config-input">
+                            <label>Multiplier:</label>
+                            <input type="number" id="skewBalanced" value="1.0" step="0.05" min="0.5" max="2">
+                        </div>
+                    </div>
+                    <div class="config-card">
+                        <h3>📊 Skew nhẹ</h3>
+                        <p>70/30 hoặc chênh lệch nhẹ</p>
+                        <div class="config-input">
+                            <label>Multiplier:</label>
+                            <input type="number" id="skewLight" value="1.15" step="0.05" min="0.5" max="2">
+                        </div>
+                    </div>
+                    <div class="config-card">
+                        <h3>🎯 Skew nặng</h3>
+                        <p>Target rất hẹp, khó fill</p>
+                        <div class="config-input">
+                            <label>Multiplier:</label>
+                            <input type="number" id="skewHeavy" value="1.4" step="0.05" min="0.5" max="2">
+                        </div>
+                    </div>
+                </div>
+                <div class="seed-section">
+                    <button class="save-config-btn" id="saveQuotaSkewBtn">💾 Lưu cấu hình</button>
+                </div>
+            </div>
+
+            <!-- TIMING TAB -->
+            <div class="tab-content" id="timingTab">
+                <div class="tab-header">
+                    <h2>📅 Cấu hình Timing & Holidays</h2>
+                </div>
+
+                <div class="config-section">
+                    <h3>🗓️ Day-of-Week Factors</h3>
+                    <p>Hệ số ảnh hưởng theo ngày trong tuần (1.0 = bình thường)</p>
+                    <div class="day-factors-grid">
+                        <div class="day-factor">
+                            <label>Thứ 2</label>
+                            <input type="number" id="dayMon" value="0.85" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>Thứ 3</label>
+                            <input type="number" id="dayTue" value="0.85" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>Thứ 4</label>
+                            <input type="number" id="dayWed" value="1.0" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>Thứ 5</label>
+                            <input type="number" id="dayThu" value="1.0" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>Thứ 6</label>
+                            <input type="number" id="dayFri" value="0.95" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>Thứ 7</label>
+                            <input type="number" id="daySat" value="1.1" step="0.05" min="0.5" max="1.5">
+                        </div>
+                        <div class="day-factor">
+                            <label>CN</label>
+                            <input type="number" id="daySun" value="1.1" step="0.05" min="0.5" max="1.5">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="config-section">
+                    <h3>🎉 Holiday Impact Factors</h3>
+                    <p>Hệ số chậm lại khi rơi vào lễ/tết (1.0 = không ảnh hưởng)</p>
+                    <div class="holiday-factors-grid">
+                        <div class="holiday-factor">
+                            <label>🧧 Tết Nguyên Đán</label>
+                            <input type="number" id="holidayTet" value="1.8" step="0.1" min="1" max="3">
+                        </div>
+                        <div class="holiday-factor">
+                            <label>🎖️ 30/4 - 1/5</label>
+                            <input type="number" id="holiday30Apr" value="1.25" step="0.05" min="1" max="2">
+                        </div>
+                        <div class="holiday-factor">
+                            <label>🏛️ Giỗ Tổ Hùng Vương</label>
+                            <input type="number" id="holidayHungVuong" value="1.1" step="0.05" min="1" max="2">
+                        </div>
+                        <div class="holiday-factor">
+                            <label>🇻🇳 Quốc Khánh</label>
+                            <input type="number" id="holidayNational" value="1.15" step="0.05" min="1" max="2">
+                        </div>
+                        <div class="holiday-factor">
+                            <label>🎄 Giáng Sinh</label>
+                            <input type="number" id="holidayChristmas" value="1.1" step="0.05" min="1" max="2">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="seed-section">
+                    <button class="save-config-btn" id="saveTimingBtn">💾 Lưu cấu hình Timing</button>
                 </div>
             </div>
 
