@@ -217,7 +217,7 @@ async function loadCases() {
     const cases = await getAllCases();
 
     if (cases.length === 0) {
-        elements.casesTableBody.innerHTML = '<tr><td colspan="11">Chưa có cases. Nhấn "Tạo 12 Cases mặc định" bên dưới.</td></tr>';
+        elements.casesTableBody.innerHTML = '<tr><td colspan="11">Chưa có cases. Nhấn "Tạo 18 Cases mặc định" bên dưới.</td></tr>';
         return;
     }
 

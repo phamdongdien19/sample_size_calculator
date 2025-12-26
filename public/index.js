@@ -4,7 +4,7 @@
  */
 
 // Import services
-import { loadCases, determineCase, calculateQuickModeRange, getDefaultCases } from './js/caseLogic.js';
+import { loadCases, determineCase, calculateQuickModeRange, getDefaultCases, calculateSampleSizeFactor } from './js/caseLogic.js';
 import { calculateFWDays, compareExpertVsSystem, estimateCPI, generateSuggestions } from './js/calculator.js';
 import { loadLocations, getIRSuggestion, getDefaultLocations } from './js/locationService.js';
 import { loadTemplates, getDefaultTemplates } from './js/templateService.js';
@@ -102,12 +102,21 @@ const elements = {
     fwStartDate: document.getElementById('fwStartDate'),
     timingWarning: document.getElementById('timingWarning'),
     // Factor Breakdown
+    factorIR: document.getElementById('factorIR'),
     factorTraffic: document.getElementById('factorTraffic'),
     factorQuota: document.getElementById('factorQuota'),
     factorQC: document.getElementById('factorQC'),
     factorTiming: document.getElementById('factorTiming'),
+    factorSampleSize: document.getElementById('factorSampleSize'),
     adjustedDaily: document.getElementById('adjustedDaily'),
-    factorBreakdown: document.getElementById('factorBreakdown')
+    factorBreakdown: document.getElementById('factorBreakdown'),
+    // Factor Toggles
+    toggleIR: document.getElementById('toggleIR'),
+    toggleTraffic: document.getElementById('toggleTraffic'),
+    toggleQuota: document.getElementById('toggleQuota'),
+    toggleQC: document.getElementById('toggleQC'),
+    toggleTiming: document.getElementById('toggleTiming'),
+    toggleSampleSize: document.getElementById('toggleSampleSize')
 };
 
 // ============ INITIALIZATION ============
@@ -296,7 +305,8 @@ function setupEventListeners() {
     // Phase 1: QC Buffer slider
     if (elements.qcBuffer) {
         elements.qcBuffer.addEventListener('input', () => {
-            elements.qcValue.textContent = elements.qcBuffer.value;
+            // Update label text
+            if (elements.qcValue) elements.qcValue.textContent = elements.qcBuffer.value;
             updateCalculation();
         });
     }
@@ -309,6 +319,22 @@ function setupEventListeners() {
             updateCalculation();
         });
     }
+
+    // Factor Toggle listeners
+    const toggleIds = ['toggleIR', 'toggleTraffic', 'toggleQuota', 'toggleQC', 'toggleTiming', 'toggleSampleSize'];
+    toggleIds.forEach(id => {
+        const toggle = elements[id];
+        if (toggle) {
+            toggle.addEventListener('change', () => {
+                // Update row visual state
+                const row = toggle.closest('.factor-row');
+                if (row) {
+                    row.classList.toggle('disabled', !toggle.checked);
+                }
+                updateCalculation();
+            });
+        }
+    });
 }
 
 function updateRadioCardSelection(name, value) {
@@ -840,6 +866,7 @@ async function updateDetailedModeResults(input) {
 
     // ============ PHASE 1: MULTI-FACTOR CALCULATION ============
     let factors = {
+        ir: 1.0, // NEW: Direct IR impact factor
         traffic: 1.0,
         quotaSkew: 1.0,
         qcBuffer: input.qcBuffer / 100,
@@ -852,10 +879,15 @@ async function updateDetailedModeResults(input) {
         try {
             const vendorResult = await calculateVendorFactor(input.panelVendors);
             factors.traffic = vendorResult.factor;
+
             // Also adjust QC buffer if vendor has high default QC reject
-            if (vendorResult.avgQcReject > input.qcBuffer / 100) {
-                factors.qcBuffer = vendorResult.avgQcReject;
-                elements.qcValue.textContent = Math.round(vendorResult.avgQcReject * 100);
+            const vendorQc = vendorResult.avgQcReject;
+            const userQc = input.qcBuffer / 100;
+
+            if (vendorQc > userQc) {
+                factors.qcBuffer = vendorQc;
+                // Update UI to show the system-enforced QC level from vendor
+                if (elements.qcValue) elements.qcValue.textContent = Math.round(vendorQc * 100) + ' (Vendor default)';
             }
         } catch (e) {
             console.log('Vendor factor error, using default:', e.message);
@@ -865,6 +897,19 @@ async function updateDetailedModeResults(input) {
     // 2. Quota Skew Factor (inverse - higher skew = slower = lower daily rate)
     const skewMultipliers = { balanced: 1.0, light_skew: 0.87, heavy_skew: 0.71 };
     factors.quotaSkew = skewMultipliers[input.quotaSkew] || 1.0;
+
+    // NEW: IR Impact Factor - IR directly affects daily sampling rate
+    // Formula: IR 50% = baseline (×1.0), IR 100% = ×1.15, IR 10% = ×0.55
+    // Lower IR means harder to find qualified respondents = slower progress
+    const irValue = input.ir || 35;
+    if (irValue >= 50) {
+        // High IR: slight boost (50-100% → 1.0-1.15)
+        factors.ir = 1.0 + ((irValue - 50) / 50) * 0.15;
+    } else {
+        // Low IR: significant penalty (1-49% → 0.4-0.98)
+        // Using exponential decay for more realistic impact at very low IRs
+        factors.ir = 0.4 + (irValue / 50) * 0.58;
+    }
 
     // 3. Timing Factor
     if (input.fwStartDate) {
@@ -883,12 +928,30 @@ async function updateDetailedModeResults(input) {
         }
     }
 
-    // Calculate adjusted daily rate
-    const baseDaily = matchedCase.samplesPerDay;
-    const adjustedDaily = baseDaily * factors.traffic * factors.quotaSkew * factors.timing * factors.audience;
+    // 5. Sample Size Factor (Diminishing Returns for large projects)
+    const sampleFactor = calculateSampleSizeFactor(input.sampleSize);
+    factors.sampleSize = sampleFactor.factor;
 
-    // Calculate required samples with QC buffer
-    const requiredWithQC = Math.ceil(input.sampleSize * (1 + factors.qcBuffer));
+    // Check toggle states - if toggled off, use neutral value (1.0)
+    const isIREnabled = elements.toggleIR?.checked !== false;
+    const isTrafficEnabled = elements.toggleTraffic?.checked !== false;
+    const isQuotaEnabled = elements.toggleQuota?.checked !== false;
+    const isQCEnabled = elements.toggleQC?.checked !== false;
+    const isTimingEnabled = elements.toggleTiming?.checked !== false;
+    const isSampleSizeEnabled = elements.toggleSampleSize?.checked !== false;
+
+    // Calculate adjusted daily rate with toggle support
+    const baseDaily = matchedCase.samplesPerDay;
+    const adjustedDaily = baseDaily
+        * (isIREnabled ? factors.ir : 1.0)
+        * (isTrafficEnabled ? factors.traffic : 1.0)
+        * (isQuotaEnabled ? factors.quotaSkew : 1.0)
+        * (isTimingEnabled ? factors.timing : 1.0)
+        * (isSampleSizeEnabled ? factors.sampleSize : 1.0);
+
+    // Calculate required samples with QC buffer (only if QC is enabled)
+    const effectiveQCBuffer = isQCEnabled ? factors.qcBuffer : 0;
+    const requiredWithQC = Math.ceil(input.sampleSize * (1 + effectiveQCBuffer));
 
     // Calculate FW days from adjusted rate
     const travelBuffer = currentLocationStats?.travelBuffer || 0;
@@ -904,6 +967,17 @@ async function updateDetailedModeResults(input) {
     systemEstimate = { min: fwDaysMin, max: fwDaysMax };
 
     // Update Factor Breakdown display
+    // NEW: IR Factor display
+    if (elements.factorIR) {
+        elements.factorIR.textContent = `×${factors.ir.toFixed(2)}`;
+        if (factors.ir >= 1.0) {
+            elements.factorIR.className = 'factor-value positive';
+        } else if (factors.ir >= 0.8) {
+            elements.factorIR.className = 'factor-value';
+        } else {
+            elements.factorIR.className = 'factor-value negative';
+        }
+    }
     if (elements.factorTraffic) {
         elements.factorTraffic.textContent = `×${factors.traffic.toFixed(2)}`;
         elements.factorTraffic.className = factors.traffic >= 1 ? 'factor-value positive' : 'factor-value negative';
@@ -918,6 +992,17 @@ async function updateDetailedModeResults(input) {
     if (elements.factorTiming) {
         elements.factorTiming.textContent = `×${factors.timing.toFixed(2)}`;
         elements.factorTiming.className = factors.timing >= 0.95 ? 'factor-value' : 'factor-value negative';
+    }
+    // NEW: Sample Size factor display
+    if (elements.factorSampleSize) {
+        elements.factorSampleSize.textContent = `×${factors.sampleSize.toFixed(2)}`;
+        if (factors.sampleSize >= 1.0) {
+            elements.factorSampleSize.className = 'factor-value positive';
+        } else if (factors.sampleSize >= 0.85) {
+            elements.factorSampleSize.className = 'factor-value';
+        } else {
+            elements.factorSampleSize.className = 'factor-value negative';
+        }
     }
     if (elements.adjustedDaily) {
         elements.adjustedDaily.textContent = `~${Math.round(adjustedDaily)} samples/day`;

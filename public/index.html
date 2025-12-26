@@ -56,14 +56,16 @@
         <!-- HEADER -->
         <header class="app-header">
             <div class="header-left">
-                <img src="logo.png" alt="FW Tools" class="header-logo">
+                <img src="images/signature-header.png" alt="Moon" class="header-moon">
             </div>
-            <h1>Sample Size Calculator</h1>
-            <div class="header-right">
-                <div id="authStatus" class="auth-status hidden">
+            <div class="header-center">
+                <div id="authStatus" class="auth-avatar-section hidden">
+                    <img src="images/sidebar-art.png" alt="Avatar" class="header-avatar">
                     <span id="userEmail" class="user-email"></span>
                     <button id="logoutBtn" class="logout-btn-header" title="Đăng xuất">🚪</button>
                 </div>
+            </div>
+            <div class="header-right">
                 <a href="admin.html" class="admin-link" title="Admin">⚙️</a>
             </div>
         </header>
@@ -80,6 +82,10 @@
                 </div>
                 <div class="pagination" id="pagination">
                     <!-- Dynamic pagination -->
+                </div>
+                <!-- SIGNATURE ART -->
+                <div class="sidebar-signature-container">
+                    <img src="images/sidebar-signature.png" alt="Điền Phạm" class="sidebar-signature">
                 </div>
             </aside>
 
@@ -156,7 +162,31 @@
                             <!-- DETAILED MODE FIELDS -->
                             <div class="detailed-fields" id="detailedFields">
                                 <div class="form-group">
-                                    <label for="irDisplay">Incidence Rate (IR%) - <span id="irValue">35</span>%</label>
+                                    <label for="irInput" class="label-with-tooltip">
+                                        Incidence Rate (IR%) - <span id="irValue">35</span>%
+                                        <div class="tooltip-wrapper">
+                                            <span class="tooltip-icon">?</span>
+                                            <div class="tooltip-content">
+                                                <div class="tooltip-header">📌 Incidence Rate (IR%) là gì?</div>
+                                                <div class="tooltip-body">
+                                                    Tỷ lệ phần trăm người vượt qua vòng lọc (Screener) để thực hiện khảo
+                                                    sát.
+                                                    <ul>
+                                                        <li><strong>Target:</strong> Nhóm đối tượng càng ngách (B2B, IT,
+                                                            MDs...), IR càng thấp.</li>
+                                                        <li><strong>Screener:</strong> Càng nhiều câu hỏi lọc phức tạp,
+                                                            IR càng giảm.</li>
+                                                        <li><strong>Region:</strong> Phân bổ dân số từng khu vực ảnh
+                                                            hưởng đến độ phủ.</li>
+                                                        <li><strong>QC & Quota:</strong> Quota khó hoặc yêu cầu QC cao
+                                                            đòi hỏi nguồn mẫu (flow) lớn hơn.</li>
+                                                    </ul>
+                                                    <div class="tooltip-footer">IR thấp sẽ làm giảm tốc độ thu mẫu và
+                                                        tăng chi phí (CPI).</div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </label>
                                     <input type="range" id="irInput" min="1" max="100" value="35">
                                 </div>
 
@@ -315,25 +345,95 @@
                             </div>
                         </div>
 
-                        <!-- FACTOR BREAKDOWN -->
                         <div class="factor-breakdown" id="factorBreakdown">
-                            <div class="factor-header">📈 Factor Adjustment</div>
+                            <div class="factor-header">
+                                📈 Factor Adjustment
+                                <span class="factor-toggle-hint">(click để bật/tắt)</span>
+                            </div>
                             <div class="factor-rows">
+                                <!-- IR Impact -->
                                 <div class="factor-row">
-                                    <span class="factor-label">🏢 Panel Source</span>
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleIR" checked>
+                                        <span class="factor-label-text">
+                                            📉 IR Impact
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">IR ảnh hưởng trực tiếp đến tốc độ
+                                                    tìm respondent. IR thấp = ít người qualify = chậm hơn.</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <span class="factor-value" id="factorIR">×1.00</span>
+                                </div>
+                                <!-- Panel Source -->
+                                <div class="factor-row">
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleTraffic" checked>
+                                        <span class="factor-label-text">
+                                            🏢 Panel Source
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Chất lượng & traffic của Panel
+                                                    Vendor. Vendor tốt = nhanh hơn, QC ít reject hơn.</span>
+                                            </span>
+                                        </span>
+                                    </label>
                                     <span class="factor-value" id="factorTraffic">×1.00</span>
                                 </div>
+                                <!-- Quota Skew -->
                                 <div class="factor-row">
-                                    <span class="factor-label">📊 Quota Skew</span>
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleQuota" checked>
+                                        <span class="factor-label-text">
+                                            📊 Quota Skew
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Mức độ lệch quota. Quota không cân
+                                                    bằng (VD: 80% Nam) sẽ chậm hơn quota balanced.</span>
+                                            </span>
+                                        </span>
+                                    </label>
                                     <span class="factor-value" id="factorQuota">×1.00</span>
                                 </div>
+                                <!-- QC Buffer -->
                                 <div class="factor-row">
-                                    <span class="factor-label">🔍 QC Buffer</span>
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleQC" checked>
+                                        <span class="factor-label-text">
+                                            🔍 QC Buffer
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">% mẫu dự phòng cho QC reject
+                                                    (speeder, straightliner...). Cộng thêm vào tổng mẫu cần thu.</span>
+                                            </span>
+                                        </span>
+                                    </label>
                                     <span class="factor-value" id="factorQC">+10%</span>
                                 </div>
+                                <!-- Timing -->
                                 <div class="factor-row">
-                                    <span class="factor-label">📅 Timing</span>
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleTiming" checked>
+                                        <span class="factor-label-text">
+                                            📅 Timing
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Ảnh hưởng của thời điểm FW (lễ,
+                                                    Tết, cuối tuần). Mùa cao điểm = chậm hơn.</span>
+                                            </span>
+                                        </span>
+                                    </label>
                                     <span class="factor-value" id="factorTiming">×1.00</span>
+                                </div>
+                                <!-- Sample Size -->
+                                <div class="factor-row">
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleSampleSize" checked>
+                                        <span class="factor-label-text">
+                                            📦 Sample Size
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Dự án lớn (N>500) có tốc độ giảm
+                                                    dần do quota cells cuối khó lấp đầy.</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <span class="factor-value" id="factorSampleSize">×1.00</span>
                                 </div>
                             </div>
                             <div class="factor-total">
@@ -428,8 +528,8 @@
 
         <footer class="app-footer">
             <div class="footer-content">
-                <img src="logo.png" alt="FW Tools" class="footer-logo">
-                <p>© 2024 dien.pham Fieldwork Tools | Sample Size Calculator v3.0</p>
+                <img src="images/signature-footer.png" alt="Điền Phạm" class="footer-signature">
+                <p>© 2024 Điền Phạm | Sample Size Calculator v3.0</p>
                 <p class="copyright-email">phamdongdien19@gmail.com | All rights reserved</p>
             </div>
         </footer>

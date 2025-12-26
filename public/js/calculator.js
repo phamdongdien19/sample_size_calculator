@@ -112,16 +112,16 @@ export function generateSuggestions(input, matchedCase) {
     const suggestions = [];
     const { ir, sampleSize, loi, quota, hardTarget } = input;
 
-    // IR-based suggestions
+    // IR-based suggestions - Focus on risk rather than adding days (since factors already add days)
     if (ir < 25) {
         suggestions.push({
             type: 'warning',
-            text: `⚠️ IR thấp (${ir}%), nên thêm 2-3 ngày buffer cho trường hợp response rate thấp hơn dự kiến.`
+            text: `⚠️ IR thấp (${ir}%). Hệ thống đã giảm tốc độ mẫu dự kiến. Chú ý rủi ro vendor không tìm đủ người.`
         });
     } else if (ir < 35) {
         suggestions.push({
             type: 'info',
-            text: `ℹ️ IR ở mức trung bình thấp (${ir}%), cân nhắc thêm 1 ngày buffer.`
+            text: `ℹ️ IR ở mức trung bình thấp (${ir}%). Tiến độ có thể không ổn định giữa các ngày.`
         });
     }
 
@@ -129,12 +129,12 @@ export function generateSuggestions(input, matchedCase) {
     if (loi > 20) {
         suggestions.push({
             type: 'warning',
-            text: `⚠️ Bảng hỏi dài (${loi} phút), drop-off rate có thể cao. Nên thêm 1-2 ngày.`
+            text: `⚠️ Bảng hỏi dài (${loi} phút). Nguy cơ tỷ lệ bỏ cuộc (Drop-off) cao, cần incentive đủ hấp dẫn.`
         });
     } else if (loi > 15) {
         suggestions.push({
             type: 'info',
-            text: `ℹ️ LOI ${loi} phút - khá dài, theo dõi quality check kỹ.`
+            text: `ℹ️ LOI ${loi} phút - Khá dài. Theo dõi kỹ Quality Check để tránh dữ liệu rác.`
         });
     }
 
@@ -142,7 +142,7 @@ export function generateSuggestions(input, matchedCase) {
     if (sampleSize > 800) {
         suggestions.push({
             type: 'info',
-            text: `ℹ️ Sample lớn (${sampleSize}), pace có thể chậm dần về cuối fieldwork.`
+            text: `ℹ️ Sample lớn (${sampleSize}). Cần chia giai đoạn báo cáo dữ liệu định kỳ.`
         });
     }
 
@@ -150,7 +150,7 @@ export function generateSuggestions(input, matchedCase) {
     if (quota === 'nested') {
         suggestions.push({
             type: 'warning',
-            text: '⚠️ Nested quota có thể gặp khó ở các cells cuối cùng. Theo dõi sát từ ngày 3-4.'
+            text: '⚠️ Quota chéo (Nested). Dễ bị kẹt ở các nhóm nhỏ (niche cells) vào cuối fieldwork.'
         });
     }
 
@@ -158,22 +158,14 @@ export function generateSuggestions(input, matchedCase) {
     if (hardTarget) {
         suggestions.push({
             type: 'critical',
-            text: '🔴 Target khó - PHẢI check feasibility với vendor trước khi commit timeline!'
+            text: '🔴 Tuyệt đối PHẢI check feasibility với vendor trước khi commit timeline cho nhóm đối tượng này!'
         });
     }
 
-    // Add case-specific suggestions
+    // Case-specific suggestion info
     if (matchedCase && matchedCase.suggestions) {
         matchedCase.suggestions.forEach(s => {
             suggestions.push({ type: 'case', text: `📋 ${s}` });
-        });
-    }
-
-    // Final recommendation
-    if (suggestions.filter(s => s.type === 'warning' || s.type === 'critical').length >= 2) {
-        suggestions.push({
-            type: 'recommend',
-            text: '💡 Nhiều yếu tố rủi ro - Suggest thêm 20-30% buffer vào timeline.'
         });
     }
 
