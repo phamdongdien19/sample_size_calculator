@@ -1644,25 +1644,28 @@ input[type="range"] {
 }
 
 .auth-avatar-section .logout-btn-header {
-    position: absolute;
-    top: 0;
-    right: -20px;
-    background: rgba(255, 255, 255, 0.8);
-    border: none;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-    transition: opacity 0.3s ease;
+    display: none;
 }
 
-.auth-avatar-section:hover .logout-btn-header {
-    opacity: 1;
+/* Subtle logout button in header-right */
+.logout-btn-subtle {
+    background: transparent;
+    border: none;
+    color: #6b7280;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+}
+
+.logout-btn-subtle:hover {
+    color: #374151;
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.logout-btn-subtle.hidden {
+    display: none;
 }
 
 .logout-btn-header {

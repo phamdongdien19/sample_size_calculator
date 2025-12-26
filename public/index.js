@@ -1589,11 +1589,14 @@ function setupAuthUI() {
 
     // Subscribe to auth changes
     onAuthChange((user) => {
+        const logoutBtn = document.getElementById('logoutBtn');
         if (user && authStatus && userEmail) {
             authStatus.classList.remove('hidden');
             userEmail.textContent = user.email;
+            if (logoutBtn) logoutBtn.classList.remove('hidden');
         } else if (authStatus) {
             authStatus.classList.add('hidden');
+            if (logoutBtn) logoutBtn.classList.add('hidden');
         }
     });
 }
