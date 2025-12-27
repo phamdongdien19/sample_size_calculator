@@ -951,7 +951,18 @@ function getFormInput() {
         qcBuffer: parseInt(elements.qcBuffer?.value) || 10,
         fwStartDate: elements.fwStartDate?.value ? new Date(elements.fwStartDate.value) : null,
         // Phase 2: Target Audience
-        targetAudience: currentTargetAudience
+        targetAudience: currentTargetAudience,
+        // Factor toggle states
+        factorToggles: {
+            ir: elements.toggleIR?.checked !== false,
+            traffic: elements.toggleTraffic?.checked !== false,
+            quota: elements.toggleQuota?.checked !== false,
+            qc: elements.toggleQC?.checked !== false,
+            timing: elements.toggleTiming?.checked !== false,
+            sampleSize: elements.toggleSampleSize?.checked !== false,
+            location: elements.toggleLocation?.checked !== false,
+            audience: elements.toggleAudience?.checked !== false
+        }
     };
 }
 
@@ -1915,15 +1926,35 @@ window.selectProject = function (idx) {
     const skewVal = item.input?.quotaSkew || 'balanced';
     document.querySelectorAll('input[name="quotaSkew"]').forEach(r => {
         r.checked = r.value === skewVal;
-        r.closest('.skew-option')?.classList.toggle('selected', r.value === skewVal);
+        r.closest('.skew-card')?.classList.toggle('selected', r.value === skewVal);
     });
 
-    // QC Buffer - handle numeric value to radio
+    // QC Buffer - handle range slider
     const qcVal = item.input?.qcBuffer || 10;
-    document.querySelectorAll('input[name="qcBuffer"]').forEach(r => {
-        // Value in radio is string "10", input data might be 10 (int)
-        r.checked = parseInt(r.value) === qcVal;
-        r.closest('.buffer-option')?.classList.toggle('selected', parseInt(r.value) === qcVal);
+    if (elements.qcBuffer) {
+        elements.qcBuffer.value = qcVal;
+        if (elements.qcValue) elements.qcValue.textContent = qcVal;
+    }
+
+    // Factor toggle states
+    const toggles = item.input?.factorToggles || {};
+    const toggleMap = [
+        { el: elements.toggleIR, key: 'ir' },
+        { el: elements.toggleTraffic, key: 'traffic' },
+        { el: elements.toggleQuota, key: 'quota' },
+        { el: elements.toggleQC, key: 'qc' },
+        { el: elements.toggleTiming, key: 'timing' },
+        { el: elements.toggleSampleSize, key: 'sampleSize' },
+        { el: elements.toggleLocation, key: 'location' },
+        { el: elements.toggleAudience, key: 'audience' }
+    ];
+    toggleMap.forEach(({ el, key }) => {
+        if (el) {
+            const isEnabled = toggles[key] !== false; // Default true if not saved
+            el.checked = isEnabled;
+            const row = el.closest('.factor-row');
+            if (row) row.classList.toggle('disabled', !isEnabled);
+        }
     });
 
     // Template (Visual only, doesn't affect logic much)
