@@ -1010,7 +1010,7 @@ input[type="range"] {
 }
 
 .dropdown-search {
-    padding: 8px;
+    padding: 10px;
     border-bottom: 1px solid var(--border);
     position: sticky;
     top: 0;
@@ -1030,6 +1030,31 @@ input[type="range"] {
 
 .dropdown-search input:focus {
     border-color: var(--primary);
+}
+
+.dropdown-search-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.search-action-btn {
+    flex: 1;
+    padding: 6px 8px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg-app);
+    cursor: pointer;
+    transition: all 0.2s;
+    color: var(--text-sub);
+}
+
+.search-action-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--primary);
+    color: var(--primary);
 }
 
 .dropdown-content {

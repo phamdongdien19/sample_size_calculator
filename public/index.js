@@ -6,7 +6,7 @@
 // Import services
 import { loadCases, determineCase, calculateQuickModeRange, getDefaultCases, calculateSampleSizeFactor } from './js/caseLogic.js';
 import { calculateFWDays, compareExpertVsSystem, estimateCPI, generateSuggestions } from './js/calculator.js';
-import { loadLocations, getIRSuggestion, getDefaultLocations } from './js/locationService.js';
+import { loadLocations, getIRSuggestion, getDefaultLocations, calculateLocationFactor } from './js/locationService.js';
 import { loadTemplates, getDefaultTemplates } from './js/templateService.js';
 import { saveCalculation, getRecentHistory } from './js/historyService.js';
 // Phase 1: Multi-factor imports
@@ -17,6 +17,15 @@ import { loadQuotaSkewConfig, getQuotaSkewMultiplier, getDefaultQuotaSkew } from
 import { loadTargetAudiences, getAudience, calculateAudienceImpact } from './js/targetAudienceService.js';
 // Phase 3: Auth
 import { logOut, onAuthChange } from './js/authService.js';
+
+// ============ UTILS ============
+function removeAccents(str) {
+    if (!str) return '';
+    return str.normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd')
+        .replace(/Đ/g, 'D');
+}
 
 // ============ STATE ============
 let currentMode = 'quick'; // 'quick' or 'detailed'
@@ -36,7 +45,10 @@ const elements = {
 
     // Template & Location
     templateSelect: document.getElementById('templateSelect'),
-    // Audience Indicator
+    // Audience Selector
+    audienceSelect: document.getElementById('audienceSelect'),
+    audienceHint: document.getElementById('audienceHint'),
+    // Audience Indicator (for template-derived audience)
     audienceIndicator: document.getElementById('audienceIndicator'),
     audienceNameDisplay: document.getElementById('audienceNameDisplay'),
     audienceBadge: document.getElementById('audienceBadge'),
@@ -108,6 +120,8 @@ const elements = {
     factorQC: document.getElementById('factorQC'),
     factorTiming: document.getElementById('factorTiming'),
     factorSampleSize: document.getElementById('factorSampleSize'),
+    factorLocation: document.getElementById('factorLocation'),
+    factorAudience: document.getElementById('factorAudience'),
     adjustedDaily: document.getElementById('adjustedDaily'),
     factorBreakdown: document.getElementById('factorBreakdown'),
     // Factor Toggles
@@ -116,7 +130,9 @@ const elements = {
     toggleQuota: document.getElementById('toggleQuota'),
     toggleQC: document.getElementById('toggleQC'),
     toggleTiming: document.getElementById('toggleTiming'),
-    toggleSampleSize: document.getElementById('toggleSampleSize')
+    toggleSampleSize: document.getElementById('toggleSampleSize'),
+    toggleLocation: document.getElementById('toggleLocation'),
+    toggleAudience: document.getElementById('toggleAudience')
 };
 
 // ============ INITIALIZATION ============
@@ -159,17 +175,14 @@ async function loadDropdowns() {
         populateTemplateDropdown(getDefaultTemplates());
     }
 
-    // Load locations - with guaranteed fallback
+    // Load locations - using local defaults for proper category grouping
+    // Firebase location_defaults may lack category field, so use getDefaultLocations() always
     try {
-        const locations = await loadLocations();
-        if (locations && locations.length > 0) {
-            populateLocationMultiSelect(locations);
-        } else {
-            console.log('No locations from Firebase, using defaults');
-            populateLocationMultiSelect(getDefaultLocations());
-        }
+        const locations = getDefaultLocations();
+        populateLocationMultiSelect(locations);
+        console.log('Using local location defaults with category grouping');
     } catch (e) {
-        console.log('Firebase error, using default locations:', e.message);
+        console.error('Error loading locations:', e.message);
         populateLocationMultiSelect(getDefaultLocations());
     }
 
@@ -184,6 +197,16 @@ async function loadDropdowns() {
     } catch (e) {
         console.log('Firebase error, using default vendors:', e.message);
         populatePanelVendorMultiSelect(getDefaultVendors());
+    }
+
+    // Load Target Audiences
+    try {
+        const audiences = await loadTargetAudiences();
+        populateAudienceDropdown(audiences);
+    } catch (e) {
+        console.log('Firebase error, using default audiences:', e.message);
+        const { DEFAULT_AUDIENCES } = await import('./js/targetAudienceService.js');
+        populateAudienceDropdown(DEFAULT_AUDIENCES);
     }
 
     // Set default FW start date to today
@@ -320,8 +343,17 @@ function setupEventListeners() {
         });
     }
 
+    // Target Audience selector
+    if (elements.audienceSelect) {
+        elements.audienceSelect.addEventListener('change', () => {
+            currentTargetAudience = elements.audienceSelect.value;
+            updateAudienceHint();
+            updateCalculation();
+        });
+    }
+
     // Factor Toggle listeners
-    const toggleIds = ['toggleIR', 'toggleTraffic', 'toggleQuota', 'toggleQC', 'toggleTiming', 'toggleSampleSize'];
+    const toggleIds = ['toggleIR', 'toggleTraffic', 'toggleQuota', 'toggleQC', 'toggleTiming', 'toggleSampleSize', 'toggleLocation', 'toggleAudience'];
     toggleIds.forEach(id => {
         const toggle = elements[id];
         if (toggle) {
@@ -355,55 +387,95 @@ function populateLocationDropdown(locations) {
     populateLocationMultiSelect(locations);
 }
 
+// ============ AUDIENCE DROPDOWN ============
+function populateAudienceDropdown(audiences) {
+    if (!audiences || audiences.length === 0) return;
+    if (!elements.audienceSelect) return;
+
+    // Keep the placeholder option
+    let html = '<option value="general">-- Chọn đối tượng (General Pop) --</option>';
+
+    audiences.forEach(a => {
+        const difficultyBadge = a.difficultyMultiplier > 1.5 ? '🔴' : a.difficultyMultiplier > 1.2 ? '🟡' : '🟢';
+        html += `<option value="${a.id}" data-factor="${a.difficultyMultiplier}">${difficultyBadge} ${a.name}</option>`;
+    });
+
+    elements.audienceSelect.innerHTML = html;
+}
+
+function updateAudienceHint() {
+    if (!elements.audienceHint) return;
+
+    const selectedOption = elements.audienceSelect?.selectedOptions[0];
+    if (!selectedOption || selectedOption.value === 'general') {
+        elements.audienceHint.classList.add('hidden');
+        return;
+    }
+
+    const factor = selectedOption.dataset.factor || 1.0;
+    const factorClass = factor > 1.5 ? 'negative' : factor > 1.2 ? 'warning' : 'positive';
+    elements.audienceHint.innerHTML = `<span class="${factorClass}">Difficulty: ×${factor}</span>`;
+    elements.audienceHint.classList.remove('hidden');
+}
+
+// ============ LOCATION MULTI-SELECT ============
 function populateLocationMultiSelect(locations) {
     if (!locations || locations.length === 0) return;
 
-    // Group by Tier
-    const tiers = {
-        1: { name: 'Tier 1: DỄ (Easy)', items: [] },
-        2: { name: 'Tier 2: TRUNG BÌNH (Medium)', items: [] },
-        3: { name: 'Tier 3: KHÓ (Hard)', items: [] },
-        4: { name: 'Tier 4: RẤT KHÓ (Very Hard)', items: [] },
-        5: { name: 'Special', items: [] }
+    // Group by Category instead of Tier
+    const categories = {
+        city: { name: '🏙️ Thành phố (Cities)', items: [], order: 1 },
+        cci: { name: '📊 CCI Type', items: [], order: 2 },
+        gso: { name: '📈 GSO Type', items: [], order: 3 },
+        region: { name: '🗺️ 3-Region (Bắc/Trung/Nam)', items: [], order: 4 }
     };
 
     locations.forEach(l => {
-        const tier = l.tier || 5;
-        if (tiers[tier]) {
-            tiers[tier].items.push(l);
+        const category = l.category || 'city';
+        if (categories[category]) {
+            categories[category].items.push(l);
         } else {
-            tiers[5].items.push(l);
+            categories.city.items.push(l);
         }
     });
 
     let html = `
         <div class="dropdown-search">
-            <input type="text" id="locationSearchInput" placeholder="🔍 Tìm kiếm location..." autocomplete="off">
+            <input type="text" id="locationSearchInput" placeholder="🔍 Tìm kiếm (vd: ha noi, ho chi minh...)" autocomplete="off">
+            <div class="dropdown-search-actions">
+                <button type="button" id="selectAllSearchBtn" class="search-action-btn">Chọn tất cả</button>
+                <button type="button" id="clearAllSearchBtn" class="search-action-btn">Bỏ chọn</button>
+            </div>
         </div>
         <div class="dropdown-content">
     `;
 
-    Object.keys(tiers).sort().forEach(tierId => {
-        const group = tiers[tierId];
-        if (group.items.length === 0) return;
+    // Sort by order and render
+    Object.entries(categories)
+        .sort((a, b) => a[1].order - b[1].order)
+        .forEach(([catId, group]) => {
+            if (group.items.length === 0) return;
 
-        html += `<div class="tier-group" data-tier="${tierId}">
-            <h4>${group.name}</h4>`;
+            html += `<div class="tier-group" data-category="${catId}">
+                <h4>${group.name}</h4>`;
 
-        group.items.forEach(l => {
-            html += `
-                <label class="location-option" data-search="${l.name.toLowerCase()}">
-                    <input type="checkbox" value="${l.id}" data-name="${l.name}" data-tier="${l.tier}">
-                    <span class="location-name">${l.name}</span>
-                    <span class="location-meta">
-                        <span class="tier-badge tier-${l.tier}">${l.defaultIR}%</span>
-                    </span>
-                </label>
-            `;
+            group.items.forEach(l => {
+                const searchData = removeAccents(l.name.toLowerCase());
+                const diffFactor = l.difficultyFactor || 1.0;
+                const factorBadge = diffFactor < 1 ? '🟢' : diffFactor > 1.3 ? '🔴' : '🟡';
+                html += `
+                    <label class="location-option" data-search="${searchData}" data-real-name="${l.name.toLowerCase()}">
+                        <input type="checkbox" value="${l.id}" data-name="${l.name}" data-tier="${l.tier}" data-factor="${diffFactor}">
+                        <span class="location-name">${l.name}</span>
+                        <span class="location-meta">
+                            <span class="tier-badge tier-${l.tier}">${l.defaultIR}% ${factorBadge}</span>
+                        </span>
+                    </label>
+                `;
+            });
+
+            html += `</div>`;
         });
-
-        html += `</div>`;
-    });
 
     html += `</div>`; // End dropdown-content
 
@@ -418,12 +490,19 @@ function populateLocationMultiSelect(locations) {
     // Bind Search Event
     const searchInput = elements.locationDropdownPanel.querySelector('#locationSearchInput');
     searchInput.addEventListener('input', (e) => {
-        const term = e.target.value.toLowerCase();
+        const rawTerm = e.target.value.toLowerCase();
+        const terms = rawTerm.split(',').map(t => removeAccents(t.trim())).filter(t => t !== '');
+
         const options = elements.locationDropdownPanel.querySelectorAll('.location-option');
 
         options.forEach(opt => {
-            const match = opt.dataset.search.includes(term);
-            opt.classList.toggle('hidden', !match);
+            if (terms.length === 0) {
+                opt.classList.remove('hidden');
+            } else {
+                const searchStr = opt.dataset.search;
+                const match = terms.some(t => searchStr.includes(t));
+                opt.classList.toggle('hidden', !match);
+            }
         });
 
         // Hide empty groups
@@ -433,8 +512,26 @@ function populateLocationMultiSelect(locations) {
         });
     });
 
-    // Prevent closing when clicking search input
-    searchInput.addEventListener('click', (e) => e.stopPropagation());
+    // Select All Filtered Results
+    const selectAllBtn = elements.locationDropdownPanel.querySelector('#selectAllSearchBtn');
+    selectAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const visibleCheckboxes = elements.locationDropdownPanel.querySelectorAll('.location-option:not(.hidden) input[type="checkbox"]');
+        visibleCheckboxes.forEach(cb => cb.checked = true);
+        updateLocationSelectionUI();
+    });
+
+    // Clear All Filtered Results
+    const clearAllBtn = elements.locationDropdownPanel.querySelector('#clearAllSearchBtn');
+    clearAllBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const visibleCheckboxes = elements.locationDropdownPanel.querySelectorAll('.location-option:not(.hidden) input[type="checkbox"]');
+        visibleCheckboxes.forEach(cb => cb.checked = false);
+        updateLocationSelectionUI();
+    });
+
+    // Prevent closing when clicking search area
+    elements.locationDropdownPanel.querySelector('.dropdown-search').addEventListener('click', (e) => e.stopPropagation());
 
     // Bind checkbox events
     elements.locationDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
@@ -866,11 +963,12 @@ async function updateDetailedModeResults(input) {
 
     // ============ PHASE 1: MULTI-FACTOR CALCULATION ============
     let factors = {
-        ir: 1.0, // NEW: Direct IR impact factor
+        ir: 1.0, // Direct IR impact factor
         traffic: 1.0,
         quotaSkew: 1.0,
         qcBuffer: input.qcBuffer / 100,
         timing: 1.0,
+        location: 1.0, // NEW: Location difficulty factor
         audience: 1.0 // Target Audience difficulty factor
     };
 
@@ -898,26 +996,33 @@ async function updateDetailedModeResults(input) {
     const skewMultipliers = { balanced: 1.0, light_skew: 0.87, heavy_skew: 0.71 };
     factors.quotaSkew = skewMultipliers[input.quotaSkew] || 1.0;
 
-    // NEW: IR Impact Factor - IR directly affects daily sampling rate
+    // 3. IR Impact Factor - IR directly affects daily sampling rate
     // Formula: IR 50% = baseline (×1.0), IR 100% = ×1.15, IR 10% = ×0.55
-    // Lower IR means harder to find qualified respondents = slower progress
     const irValue = input.ir || 35;
     if (irValue >= 50) {
-        // High IR: slight boost (50-100% → 1.0-1.15)
         factors.ir = 1.0 + ((irValue - 50) / 50) * 0.15;
     } else {
-        // Low IR: significant penalty (1-49% → 0.4-0.98)
-        // Using exponential decay for more realistic impact at very low IRs
         factors.ir = 0.4 + (irValue / 50) * 0.58;
     }
 
-    // 3. Timing Factor
+    // 4. Timing Factor
     if (input.fwStartDate) {
-        const timingResult = calculateTimingFactor(input.fwStartDate, 14); // Assume 14 days estimate
+        const timingResult = calculateTimingFactor(input.fwStartDate, 14);
         factors.timing = timingResult.factor;
     }
 
-    // 4. Target Audience Factor
+    // 5. Location Factor - based on selected locations' difficulty
+    if (input.locations && input.locations.length > 0) {
+        try {
+            const locationResult = await calculateLocationFactor(input.locations);
+            // difficultyFactor > 1 = harder = slower, so we invert
+            factors.location = 1 / locationResult.factor;
+        } catch (e) {
+            console.log('Location factor error, using default:', e.message);
+        }
+    }
+
+    // 6. Target Audience Factor
     if (input.targetAudience && input.targetAudience !== 'general') {
         try {
             const audienceImpact = await calculateAudienceImpact(input.targetAudience);
@@ -928,7 +1033,7 @@ async function updateDetailedModeResults(input) {
         }
     }
 
-    // 5. Sample Size Factor (Diminishing Returns for large projects)
+    // 7. Sample Size Factor (Diminishing Returns for large projects)
     const sampleFactor = calculateSampleSizeFactor(input.sampleSize);
     factors.sampleSize = sampleFactor.factor;
 
@@ -939,6 +1044,8 @@ async function updateDetailedModeResults(input) {
     const isQCEnabled = elements.toggleQC?.checked !== false;
     const isTimingEnabled = elements.toggleTiming?.checked !== false;
     const isSampleSizeEnabled = elements.toggleSampleSize?.checked !== false;
+    const isLocationEnabled = elements.toggleLocation?.checked !== false;
+    const isAudienceEnabled = elements.toggleAudience?.checked !== false;
 
     // Calculate adjusted daily rate with toggle support
     const baseDaily = matchedCase.samplesPerDay;
@@ -947,7 +1054,9 @@ async function updateDetailedModeResults(input) {
         * (isTrafficEnabled ? factors.traffic : 1.0)
         * (isQuotaEnabled ? factors.quotaSkew : 1.0)
         * (isTimingEnabled ? factors.timing : 1.0)
-        * (isSampleSizeEnabled ? factors.sampleSize : 1.0);
+        * (isSampleSizeEnabled ? factors.sampleSize : 1.0)
+        * (isLocationEnabled ? factors.location : 1.0)
+        * (isAudienceEnabled ? factors.audience : 1.0);
 
     // Calculate required samples with QC buffer (only if QC is enabled)
     const effectiveQCBuffer = isQCEnabled ? factors.qcBuffer : 0;
@@ -993,7 +1102,7 @@ async function updateDetailedModeResults(input) {
         elements.factorTiming.textContent = `×${factors.timing.toFixed(2)}`;
         elements.factorTiming.className = factors.timing >= 0.95 ? 'factor-value' : 'factor-value negative';
     }
-    // NEW: Sample Size factor display
+    // Sample Size factor display
     if (elements.factorSampleSize) {
         elements.factorSampleSize.textContent = `×${factors.sampleSize.toFixed(2)}`;
         if (factors.sampleSize >= 1.0) {
@@ -1002,6 +1111,28 @@ async function updateDetailedModeResults(input) {
             elements.factorSampleSize.className = 'factor-value';
         } else {
             elements.factorSampleSize.className = 'factor-value negative';
+        }
+    }
+    // Location factor display
+    if (elements.factorLocation) {
+        elements.factorLocation.textContent = `×${factors.location.toFixed(2)}`;
+        if (factors.location >= 1.0) {
+            elements.factorLocation.className = 'factor-value positive';
+        } else if (factors.location >= 0.8) {
+            elements.factorLocation.className = 'factor-value';
+        } else {
+            elements.factorLocation.className = 'factor-value negative';
+        }
+    }
+    // Audience factor display
+    if (elements.factorAudience) {
+        elements.factorAudience.textContent = `×${factors.audience.toFixed(2)}`;
+        if (factors.audience >= 1.0) {
+            elements.factorAudience.className = 'factor-value positive';
+        } else if (factors.audience >= 0.7) {
+            elements.factorAudience.className = 'factor-value';
+        } else {
+            elements.factorAudience.className = 'factor-value negative';
         }
     }
     if (elements.adjustedDaily) {

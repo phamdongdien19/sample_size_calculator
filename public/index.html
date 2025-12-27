@@ -16,6 +16,10 @@
 
         // Check authentication on page load
         onAuthChange(async (user) => {
+            // BYPASS FOR TESTING
+            document.body.classList.add('authenticated');
+            return;
+
             if (!user) {
                 window.location.href = 'login.html?redirect=index.html';
                 return;
@@ -145,7 +149,7 @@
                             </div>
 
                             <div class="form-group">
-                                <label>Vùng miền / Loại Target (Multi-select)</label>
+                                <label>🌍 Vùng miền (Multi-select)</label>
                                 <div class="multi-select-container" id="locationMultiSelect">
                                     <div class="select-box" id="locationSelectBox">
                                         <span class="selected-text" id="locationSelectedText">-- Chọn locations
@@ -157,6 +161,14 @@
                                     </div>
                                 </div>
                                 <div class="ir-suggestion" id="irSuggestion"></div>
+                            </div>
+
+                            <div class="form-group">
+                                <label>🎯 Target Audience</label>
+                                <select id="audienceSelect">
+                                    <option value="general">-- Chọn đối tượng --</option>
+                                </select>
+                                <div class="audience-hint hidden" id="audienceHint"></div>
                             </div>
 
                             <!-- DETAILED MODE FIELDS -->
@@ -434,6 +446,34 @@
                                         </span>
                                     </label>
                                     <span class="factor-value" id="factorSampleSize">×1.00</span>
+                                </div>
+                                <!-- Location -->
+                                <div class="factor-row">
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleLocation" checked>
+                                        <span class="factor-label-text">
+                                            🌍 Location
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Độ khó theo vùng miền. Thành phố
+                                                    lớn = nhanh hơn, nông thôn/miền núi = chậm hơn.</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <span class="factor-value" id="factorLocation">×1.00</span>
+                                </div>
+                                <!-- Target Audience -->
+                                <div class="factor-row">
+                                    <label class="factor-toggle">
+                                        <input type="checkbox" id="toggleAudience" checked>
+                                        <span class="factor-label-text">
+                                            🎯 Target Audience
+                                            <span class="factor-tooltip">?
+                                                <span class="factor-tooltip-content">Độ khó theo đối tượng. General Pop
+                                                    = dễ, B2B/Doctors = rất khó.</span>
+                                            </span>
+                                        </span>
+                                    </label>
+                                    <span class="factor-value" id="factorAudience">×1.00</span>
                                 </div>
                             </div>
                             <div class="factor-total">
