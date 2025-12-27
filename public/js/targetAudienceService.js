@@ -25,48 +25,111 @@ const DEFAULT_AUDIENCES = [
     },
     {
         id: 'youth',
-        name: 'Youth (15-24)',
+        name: 'Gen Z / Youth (16-24)',
         order: 2,
         irFactor: 0.8,
         difficultyMultiplier: 1.2,
-        description: 'Đối tượng trẻ 15-24 tuổi',
-        notes: 'Response rate cao hơn nhưng khó reach hơn trên panel'
+        description: 'Giới trẻ, học sinh sinh viên 16-24 tuổi',
+        notes: 'Tech-savvy nhưng khó đoán, IR cao trên mobile panel'
+    },
+    {
+        id: 'moms_baby',
+        name: 'Moms with Babies (0-3)',
+        order: 3,
+        irFactor: 0.5,
+        difficultyMultiplier: 1.4,
+        description: 'Mẹ có con nhỏ 0-3 tuổi (Mẹ bỉm sữa)',
+        notes: 'Đối tượng classic của FMCG, thường bận rộn'
+    },
+    {
+        id: 'kids_parents',
+        name: 'Parents of Kids (4-12)',
+        order: 4,
+        irFactor: 0.5,
+        difficultyMultiplier: 1.3,
+        description: 'Bố mẹ có con 4-12 tuổi',
+        notes: 'Cần tiếp cận qua bố mẹ để hỏi về trẻ'
     },
     {
         id: 'senior',
         name: 'Senior (55+)',
-        order: 3,
+        order: 5,
         irFactor: 0.5,
-        difficultyMultiplier: 1.5,
-        description: 'Đối tượng lớn tuổi 55+',
-        notes: 'Ít online, response chậm'
+        difficultyMultiplier: 1.6,
+        description: 'Người lớn tuổi trên 55',
+        notes: 'Công nghệ thấp (Low tech), response time chậm'
     },
     {
         id: 'high_income',
-        name: 'High Income',
-        order: 4,
-        irFactor: 0.4,
-        difficultyMultiplier: 1.8,
-        description: 'Thu nhập cao (ABC1)',
-        notes: 'Khó tiếp cận, thường cần incentive cao'
-    },
-    {
-        id: 'b2b',
-        name: 'B2B Decision Makers',
-        order: 5,
-        irFactor: 0.3,
-        difficultyMultiplier: 2.0,
-        description: 'Lãnh đạo doanh nghiệp, người ra quyết định',
-        notes: 'IR rất thấp, cần panel chuyên biệt hoặc recruit trực tiếp'
-    },
-    {
-        id: 'healthcare',
-        name: 'Healthcare Professionals',
+        name: 'High Income (Class A)',
         order: 6,
-        irFactor: 0.15,
+        irFactor: 0.35,
+        difficultyMultiplier: 1.9,
+        description: 'Thu nhập cao, tầng lớp thượng lưu',
+        notes: 'Khó tiếp cận, bảo mật cao, cần incentive lớn'
+    },
+    {
+        id: 'car_owners',
+        name: 'Car Owners',
+        order: 7,
+        irFactor: 0.4,
+        difficultyMultiplier: 1.5,
+        description: 'Chủ sở hữu ô tô',
+        notes: 'IR thấp (đặc biệt ở VN), cần verify kỹ'
+    },
+    {
+        id: 'gamers',
+        name: 'Gamers (Mobile/PC)',
+        order: 8,
+        irFactor: 0.8,
+        difficultyMultiplier: 1.1,
+        description: 'Người chơi game thường xuyên',
+        notes: 'Dễ tiếp cận online, response nhanh'
+    },
+    {
+        id: 'investors',
+        name: 'Investors (Stock/Crypto)',
+        order: 9,
+        irFactor: 0.3,
+        difficultyMultiplier: 1.6,
+        description: 'Nhà đầu tư chứng khoán / tài chính',
+        notes: 'Nhóm niche, quan tâm tài chính'
+    },
+    {
+        id: 'smokers',
+        name: 'Smokers',
+        order: 10,
+        irFactor: 0.6,
+        difficultyMultiplier: 1.3,
+        description: 'Người hút thuốc lá',
+        notes: 'IR khoảng 20-30%, sẵn lòng trả lời thấp'
+    },
+    {
+        id: 'alcohol',
+        name: 'Beer/Alcohol Drinkers',
+        order: 11,
+        irFactor: 0.7,
+        difficultyMultiplier: 1.2,
+        description: 'Người uống bia / rượu',
+        notes: 'Khá phổ biến ở nam giới'
+    },
+    {
+        id: 'sme_decision',
+        name: 'SME Decision Makers',
+        order: 12,
+        irFactor: 0.2,
+        difficultyMultiplier: 2.2,
+        description: 'Chủ doanh nghiệp SME / Quyết định mua sắm',
+        notes: 'Cực khó (B2B), bận rộn, cần chuyên môn cao'
+    },
+    {
+        id: 'healthcare_pro',
+        name: 'HCP (Healthcare Pro)',
+        order: 13,
+        irFactor: 0.1,
         difficultyMultiplier: 2.5,
-        description: 'Bác sĩ, dược sĩ, nhân viên y tế',
-        notes: 'IR cực thấp, thường cần recruit qua hiệp hội hoặc cold call'
+        description: 'Bác sĩ, Dược sĩ, Chuyên gia y tế',
+        notes: 'Khó nhất, thường cần panel y tế chuyên dụng'
     }
 ];
 
