@@ -1164,47 +1164,29 @@ async function updateDetailedModeResults(input) {
     }
     if (elements.factorQuota) {
         elements.factorQuota.textContent = `×${factors.quotaSkew.toFixed(2)}`;
-        elements.factorQuota.className = factors.quotaSkew >= 1 ? 'factor-value' : 'factor-value negative';
+        elements.factorQuota.className = factors.quotaSkew >= 1 ? 'factor-value positive' : 'factor-value negative';
     }
     if (elements.factorQC) {
         elements.factorQC.textContent = `+${Math.round(factors.qcBuffer * 100)}%`;
     }
     if (elements.factorTiming) {
         elements.factorTiming.textContent = `×${factors.timing.toFixed(2)}`;
-        elements.factorTiming.className = factors.timing >= 0.95 ? 'factor-value' : 'factor-value negative';
+        elements.factorTiming.className = factors.timing >= 1 ? 'factor-value positive' : 'factor-value negative';
     }
     // Sample Size factor display
     if (elements.factorSampleSize) {
         elements.factorSampleSize.textContent = `×${factors.sampleSize.toFixed(2)}`;
-        if (factors.sampleSize >= 1.0) {
-            elements.factorSampleSize.className = 'factor-value positive';
-        } else if (factors.sampleSize >= 0.85) {
-            elements.factorSampleSize.className = 'factor-value';
-        } else {
-            elements.factorSampleSize.className = 'factor-value negative';
-        }
+        elements.factorSampleSize.className = factors.sampleSize >= 1 ? 'factor-value positive' : 'factor-value negative';
     }
     // Location factor display
     if (elements.factorLocation) {
         elements.factorLocation.textContent = `×${factors.location.toFixed(2)}`;
-        if (factors.location >= 1.0) {
-            elements.factorLocation.className = 'factor-value positive';
-        } else if (factors.location >= 0.8) {
-            elements.factorLocation.className = 'factor-value';
-        } else {
-            elements.factorLocation.className = 'factor-value negative';
-        }
+        elements.factorLocation.className = factors.location >= 1 ? 'factor-value positive' : 'factor-value negative';
     }
     // Audience factor display
     if (elements.factorAudience) {
         elements.factorAudience.textContent = `×${factors.audience.toFixed(2)}`;
-        if (factors.audience >= 1.0) {
-            elements.factorAudience.className = 'factor-value positive';
-        } else if (factors.audience >= 0.7) {
-            elements.factorAudience.className = 'factor-value';
-        } else {
-            elements.factorAudience.className = 'factor-value negative';
-        }
+        elements.factorAudience.className = factors.audience >= 1 ? 'factor-value positive' : 'factor-value negative';
     }
     if (elements.adjustedDaily) {
         elements.adjustedDaily.textContent = `~${Math.round(adjustedDaily)} samples/day`;
