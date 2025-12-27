@@ -679,6 +679,11 @@ input[type="range"] {
     display: none;
 }
 
+/* Hide main content initially until project is selected or +New clicked */
+.main-content.hidden-initial {
+    display: none;
+}
+
 .result-box {
     text-align: center;
     padding: 20px;

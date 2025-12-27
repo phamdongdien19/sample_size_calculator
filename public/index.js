@@ -1853,6 +1853,9 @@ window.selectProject = function (idx) {
     const item = window.projectData?.[idx];
     if (!item) return;
 
+    // Show main content if hidden
+    showMainContent();
+
     currentProjectId = item.id;
 
     // Update active state in UI
@@ -1916,19 +1919,25 @@ window.selectProject = function (idx) {
     }
 
     // Target Audience
-    if (elements.audienceSelect && item.input?.targetAudience) {
-        elements.audienceSelect.value = item.input.targetAudience;
+    if (elements.audienceSelect) {
+        const savedAudience = item.input?.targetAudience || 'general';
+        elements.audienceSelect.value = savedAudience;
+        currentTargetAudience = savedAudience; // Explicitly set the variable
         // Trigger change to update info
         const event = new Event('change');
         elements.audienceSelect.dispatchEvent(event);
     }
 
-    // Quota Skew
+    // Quota Skew - clear all selected first, then set correct one
     const skewVal = item.input?.quotaSkew || 'balanced';
     document.querySelectorAll('input[name="quotaSkew"]').forEach(r => {
         r.checked = r.value === skewVal;
-        r.closest('.skew-card')?.classList.toggle('selected', r.value === skewVal);
+        // First remove all selected classes
+        r.closest('.skew-card')?.classList.remove('selected');
     });
+    // Then add to the correct one
+    const checkedSkew = document.querySelector('input[name="quotaSkew"]:checked');
+    checkedSkew?.closest('.skew-card')?.classList.add('selected');
 
     // QC Buffer - handle range slider
     const qcVal = item.input?.qcBuffer || 10;
@@ -2013,6 +2022,9 @@ setupAuthUI();
 // NEW: Create New Project Logic
 function createNewProject() {
     if (confirm('Tạo estimate mới? Dữ liệu đang nhập sẽ bị mất nếu chưa lưu.')) {
+        // Show main content if hidden
+        showMainContent();
+
         currentProjectId = null;
 
         // Reset inputs
@@ -2056,4 +2068,10 @@ function createNewProject() {
 function highlightCurrentProject() {
     // Logic handled by renderProjectCards re-render
     // Kept for compatibility with onSave calls
+}
+
+// Helper: Show main content (remove hidden-initial class)
+function showMainContent() {
+    const mainContent = document.getElementById('mainContent');
+    if (mainContent) mainContent.classList.remove('hidden-initial');
 }
