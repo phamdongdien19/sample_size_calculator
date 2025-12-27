@@ -1941,50 +1941,7 @@ window.selectProject = function (idx) {
     }
 }
 
-function createNewProject() {
-    currentProjectId = null;
 
-    // Clear active state
-    document.querySelectorAll('.project-card').forEach(card => card.classList.remove('active'));
-
-    // Switch to quick mode
-    switchMode('quick');
-
-    // Reset form
-    if (elements.projectName) elements.projectName.value = '';
-    if (elements.sampleSize) elements.sampleSize.value = '';
-    if (elements.loi) elements.loi.value = '';
-    if (elements.irInput) {
-        elements.irInput.value = 35;
-        elements.irValue.textContent = 35;
-    }
-    if (elements.expertDays) elements.expertDays.value = '';
-    if (elements.expertNote) elements.expertNote.value = '';
-
-    // Reset radios
-    document.querySelectorAll('input[name="quota"]').forEach(r => {
-        r.checked = r.value === 'simple';
-        r.closest('.radio-card')?.classList.toggle('selected', r.value === 'simple');
-    });
-    document.querySelectorAll('input[name="target"]').forEach(r => {
-        r.checked = r.value === 'normal';
-        r.closest('.radio-card')?.classList.toggle('selected', r.value === 'normal');
-    });
-
-    // Hide summary table
-    const summaryContainer = document.getElementById('summaryTableContainer');
-    if (summaryContainer) summaryContainer.classList.add('hidden');
-
-    // Show notification
-    const status = document.getElementById('saveStatus');
-    if (status) {
-        status.textContent = '✨ Bắt đầu estimate mới';
-        status.style.color = '#10b981';
-        setTimeout(() => { status.textContent = ''; }, 2000);
-    }
-
-    updateCalculation();
-}
 
 
 
