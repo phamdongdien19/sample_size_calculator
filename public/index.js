@@ -1382,17 +1382,16 @@ async function onSave() {
         return;
     }
 
+    // Serialize Date object
+    const savedInput = {
+        ...input,
+        fwStartDate: input.fwStartDate ? input.fwStartDate.toISOString() : null
+    };
+
     const data = {
         projectName: input.projectName,
         mode: currentMode,
-        input: {
-            sampleSize: input.sampleSize || 0,
-            ir: input.ir || 35,
-            loi: input.loi || 15,
-            quota: input.quota || 'simple',
-            hardTarget: input.hardTarget || false,
-            location: input.location || ''
-        },
+        input: savedInput,
         systemResult: {
             caseId: currentResult?.id,
             difficulty: currentResult?.difficulty,
@@ -1805,10 +1804,10 @@ window.selectProject = function (idx) {
     // Switch to detailed mode
     switchMode('detailed');
 
-    // Populate form
+    // Populate form basic inputs
     if (elements.projectName) elements.projectName.value = item.projectName || '';
-    if (elements.sampleSize) elements.sampleSize.value = item.input?.sampleSize || '';
-    if (elements.loi) elements.loi.value = item.input?.loi || '';
+    if (elements.sampleSize) elements.sampleSize.value = item.input?.sampleSize || 0;
+    if (elements.loi) elements.loi.value = item.input?.loi || 15;
     if (elements.irInput) {
         elements.irInput.value = item.input?.ir || 35;
         elements.irValue.textContent = item.input?.ir || 35;
@@ -1816,10 +1815,19 @@ window.selectProject = function (idx) {
     if (elements.expertDays) elements.expertDays.value = item.expertConclusion?.fwDays || '';
     if (elements.expertNote) elements.expertNote.value = item.expertConclusion?.note || '';
 
+    // Restore Date
+    if (elements.fwStartDate && item.input?.fwStartDate) {
+        // Handle both ISO string and Firestore Timestamp
+        let dateVal = item.input.fwStartDate;
+        if (dateVal.toDate) dateVal = dateVal.toDate().toISOString(); // Firestore Timestamp
+        elements.fwStartDate.value = dateVal.split('T')[0];
+    }
+
     // Set quota radio
     const quotaValue = item.input?.quota || 'simple';
     document.querySelectorAll('input[name="quota"]').forEach(r => {
         r.checked = r.value === quotaValue;
+        // Trigger generic change if needed, but manual UI update is safer
         r.closest('.radio-card')?.classList.toggle('selected', r.value === quotaValue);
     });
 
@@ -1829,6 +1837,51 @@ window.selectProject = function (idx) {
         r.checked = r.value === targetValue;
         r.closest('.radio-card')?.classList.toggle('selected', r.value === targetValue);
     });
+
+    // Restore Locations (Multi-select)
+    const savedLocs = item.input?.locations || [];
+    if (elements.locationDropdownPanel) {
+        elements.locationDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = savedLocs.includes(cb.value);
+        });
+        updateLocationSelectionUI();
+    }
+
+    // Restore Phase 1 & 2 inputs
+    // Panel Vendors
+    const savedVendors = item.input?.panelVendors || [];
+    if (elements.panelDropdownPanel) {
+        elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+            cb.checked = savedVendors.includes(cb.value);
+        });
+        updatePanelVendorSelectionUI();
+    }
+
+    // Target Audience
+    if (elements.audienceSelect && item.input?.targetAudience) {
+        elements.audienceSelect.value = item.input.targetAudience;
+        // Trigger change to update info
+        const event = new Event('change');
+        elements.audienceSelect.dispatchEvent(event);
+    }
+
+    // Quota Skew
+    const skewVal = item.input?.quotaSkew || 'balanced';
+    document.querySelectorAll('input[name="quotaSkew"]').forEach(r => {
+        r.checked = r.value === skewVal;
+        r.closest('.skew-option')?.classList.toggle('selected', r.value === skewVal);
+    });
+
+    // QC Buffer - handle numeric value to radio
+    const qcVal = item.input?.qcBuffer || 10;
+    document.querySelectorAll('input[name="qcBuffer"]').forEach(r => {
+        // Value in radio is string "10", input data might be 10 (int)
+        r.checked = parseInt(r.value) === qcVal;
+        r.closest('.buffer-option')?.classList.toggle('selected', parseInt(r.value) === qcVal);
+    });
+
+    // Template (Visual only, doesn't affect logic much)
+    // if (elements.templateSelect && item.input?.projectTemplate) { ... }
 
     // Trigger calculation
     updateCalculation();
