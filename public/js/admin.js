@@ -242,29 +242,35 @@ async function loadCases() {
 }
 
 async function loadLocations() {
-    elements.locationsTableBody.innerHTML = '<tr><td colspan="7">Đang tải...</td></tr>';
+    elements.locationsTableBody.innerHTML = '<tr><td colspan="9">Đang tải...</td></tr>';
 
     const locations = await getAllLocations();
 
     if (locations.length === 0) {
-        elements.locationsTableBody.innerHTML = '<tr><td colspan="7">Chưa có locations.</td></tr>';
+        elements.locationsTableBody.innerHTML = '<tr><td colspan="9">Chưa có locations.</td></tr>';
         return;
     }
 
-    elements.locationsTableBody.innerHTML = locations.map(l => `
+    elements.locationsTableBody.innerHTML = locations.map(l => {
+        const diffFactor = l.difficultyFactor || 1.0;
+        const diffClass = diffFactor <= 0.9 ? 'positive' : (diffFactor >= 1.5 ? 'negative' : '');
+        return `
         <tr>
             <td>${l.id}</td>
             <td>${l.name}</td>
             <td>${l.tier}</td>
             <td>${l.defaultIR}%</td>
             <td>${l.irRange?.min}-${l.irRange?.max}%</td>
+            <td class="${diffClass}"><strong>${diffFactor.toFixed(2)}</strong></td>
+            <td>${l.samplesPerDay || '-'}</td>
             <td>${l.notes || '-'}</td>
             <td class="actions">
                 <button class="btn-edit" onclick="editLocation('${l.id}')">Sửa</button>
                 <button class="btn-delete" onclick="deleteLocation('${l.id}')">Xóa</button>
             </td>
         </tr>
-    `).join('');
+    `;
+    }).join('');
 }
 
 async function loadTemplates() {
@@ -451,10 +457,15 @@ function getModalForm(type) {
                     <label>Samples / Day</label>
                     <input type="number" id="formLocSamplesPerDay">
                 </div>
-                 <div class="form-group">
-                    <label>Ghi chú</label>
-                    <input type="text" id="formLocNotes">
+                <div class="form-group">
+                    <label>Difficulty Factor (×)</label>
+                    <input type="number" id="formLocDifficultyFactor" step="0.05" min="0.5" max="3" value="1.0">
+                    <small style="color: #666;">0.8=nhanh, 1.0=baseline, 2.0=chậm</small>
                 </div>
+            </div>
+            <div class="form-group">
+                <label>Ghi chú</label>
+                <input type="text" id="formLocNotes">
             </div>
         `;
     }
@@ -706,7 +717,8 @@ async function onModalSave() {
                     min: parseInt(document.getElementById('formLocIrMin').value),
                     max: parseInt(document.getElementById('formLocIrMax').value)
                 },
-                samplesPerDay: parseInt(document.getElementById('formLocSamplesPerDay').value),
+                samplesPerDay: parseInt(document.getElementById('formLocSamplesPerDay').value) || 50,
+                difficultyFactor: parseFloat(document.getElementById('formLocDifficultyFactor').value) || 1.0,
                 notes: document.getElementById('formLocNotes').value
             };
 
@@ -925,6 +937,8 @@ window.editLocation = async (id) => {
             if (irMaxField) irMaxField.value = location.irRange?.max || '';
             const spdField = document.getElementById('formLocSamplesPerDay');
             if (spdField) spdField.value = location.samplesPerDay || '';
+            const diffField = document.getElementById('formLocDifficultyFactor');
+            if (diffField) diffField.value = location.difficultyFactor || 1.0;
             const notesField = document.getElementById('formLocNotes');
             if (notesField) notesField.value = location.notes || '';
         }, 50);
