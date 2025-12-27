@@ -195,5 +195,5 @@ export async function clearAllHistory() {
 // ============ CALCULATIONS (PROJECTS) ============
 
 export async function deleteCalculation(id) {
-    return deleteItem('calculations', id);
+    return deleteItem('calculation_history', id);
 }
