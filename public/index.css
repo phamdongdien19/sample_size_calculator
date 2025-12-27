@@ -1237,18 +1237,18 @@ input[type="range"] {
     gap: 6px;
 }
 
-/* 4-Column Header */
+/* 3-Column Header */
 .factor-column-headers {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 0.8fr 0.5fr;
-    gap: 6px;
+    grid-template-columns: 1.3fr 1.2fr 0.5fr;
+    gap: 8px;
     padding: 4px 0 8px 0;
     border-bottom: 1px solid rgba(79, 70, 229, 0.15);
     margin-bottom: 6px;
 }
 
 .factor-column-headers span {
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -1264,32 +1264,17 @@ input[type="range"] {
     text-align: center;
 }
 
-.col-field {
-    text-align: center;
-}
-
 .col-value {
     text-align: right;
 }
 
-/* 4-Column Row */
+/* 3-Column Row */
 .factor-row {
     display: grid;
-    grid-template-columns: 1.2fr 1fr 0.8fr 0.5fr;
-    gap: 6px;
+    grid-template-columns: 1.3fr 1.2fr 0.5fr;
+    gap: 8px;
     align-items: center;
     padding: 4px 0;
-}
-
-/* Field column (debug) */
-.factor-field {
-    font-size: 0.65rem;
-    color: #9ca3af;
-    font-family: 'Consolas', 'Monaco', monospace;
-    text-align: center;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
 }
 
 /* Source column */

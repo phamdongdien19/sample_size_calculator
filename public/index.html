@@ -389,7 +389,6 @@
                             <div class="factor-column-headers">
                                 <span class="col-factor">Factor</span>
                                 <span class="col-source">Source</span>
-                                <span class="col-field">Field</span>
                                 <span class="col-value">Value</span>
                             </div>
                             <div class="factor-rows">
@@ -400,13 +399,13 @@
                                         <span class="factor-label-text">
                                             📉 IR Impact
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">IR ảnh hưởng trực tiếp đến tốc độ
-                                                    tìm respondent. IR thấp = ít người qualify = chậm hơn.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.ir<br>IR ảnh hưởng trực tiếp đến tốc độ tìm respondent. IR
+                                                    thấp = ít người qualify = chậm hơn.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorIRSource">--</span>
-                                    <span class="factor-field" title="factors.ir">ir</span>
                                     <span class="factor-value" id="factorIR">×1.00</span>
                                 </div>
                                 <!-- Panel Source -->
@@ -416,13 +415,13 @@
                                         <span class="factor-label-text">
                                             🏢 Panel Source
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Chất lượng & traffic của Panel
-                                                    Vendor. Vendor tốt = nhanh hơn, QC ít reject hơn.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.traffic<br>Chất lượng & traffic của Panel Vendor. Vendor tốt
+                                                    = nhanh hơn, QC ít reject hơn.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorTrafficSource">--</span>
-                                    <span class="factor-field" title="factors.traffic">traffic</span>
                                     <span class="factor-value" id="factorTraffic">×1.00</span>
                                 </div>
                                 <!-- Quota Skew -->
@@ -432,13 +431,13 @@
                                         <span class="factor-label-text">
                                             📊 Quota Skew
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Mức độ lệch quota. Quota không cân
-                                                    bằng (VD: 80% Nam) sẽ chậm hơn quota balanced.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.quotaSkew<br>Mức độ lệch quota. Quota không cân bằng (VD:
+                                                    80% Nam) sẽ chậm hơn quota balanced.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorQuotaSource">--</span>
-                                    <span class="factor-field" title="factors.quotaSkew">quota</span>
                                     <span class="factor-value" id="factorQuota">×1.00</span>
                                 </div>
                                 <!-- QC Buffer -->
@@ -448,13 +447,13 @@
                                         <span class="factor-label-text">
                                             🔍 QC Buffer
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">% mẫu dự phòng cho QC reject
-                                                    (speeder, straightliner...). Cộng thêm vào tổng mẫu cần thu.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.qcBuffer<br>% mẫu dự phòng cho QC reject (speeder,
+                                                    straightliner...). Cộng thêm vào tổng mẫu cần thu.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorQCSource">--</span>
-                                    <span class="factor-field" title="factors.qcBuffer">qc</span>
                                     <span class="factor-value" id="factorQC">+10%</span>
                                 </div>
                                 <!-- Timing -->
@@ -464,13 +463,13 @@
                                         <span class="factor-label-text">
                                             📅 Timing
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Ảnh hưởng của thời điểm FW (lễ,
-                                                    Tết, cuối tuần). Mùa cao điểm = chậm hơn.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.timing<br>Ảnh hưởng của thời điểm FW (lễ, Tết, cuối tuần).
+                                                    Mùa cao điểm = chậm hơn.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorTimingSource">--</span>
-                                    <span class="factor-field" title="factors.timing">timing</span>
                                     <span class="factor-value" id="factorTiming">×1.00</span>
                                 </div>
                                 <!-- Sample Size -->
@@ -480,13 +479,13 @@
                                         <span class="factor-label-text">
                                             📦 Sample Size
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Dự án lớn (N>500) có tốc độ giảm
-                                                    dần do quota cells cuối khó lấp đầy.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.sampleSize<br>Dự án lớn (N>500) có tốc độ giảm dần do quota
+                                                    cells cuối khó lấp đầy.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorSampleSizeSource">--</span>
-                                    <span class="factor-field" title="factors.sampleSize">size</span>
                                     <span class="factor-value" id="factorSampleSize">×1.00</span>
                                 </div>
                                 <!-- Location -->
@@ -496,13 +495,13 @@
                                         <span class="factor-label-text">
                                             🌍 Location
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Độ khó theo vùng miền. Thành phố
-                                                    lớn = nhanh hơn, nông thôn/miền núi = chậm hơn.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.location<br>Độ khó theo vùng miền. Thành phố lớn = nhanh
+                                                    hơn, nông thôn/miền núi = chậm hơn.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorLocationSource">--</span>
-                                    <span class="factor-field" title="factors.location">loc</span>
                                     <span class="factor-value" id="factorLocation">×1.00</span>
                                 </div>
                                 <!-- Target Audience -->
@@ -512,13 +511,13 @@
                                         <span class="factor-label-text">
                                             🎯 Target Audience
                                             <span class="factor-tooltip">?
-                                                <span class="factor-tooltip-content">Độ khó theo đối tượng. General Pop
-                                                    = dễ, B2B/Doctors = rất khó.</span>
+                                                <span class="factor-tooltip-content"><strong>Field:</strong>
+                                                    factors.audience<br>Độ khó theo đối tượng. General Pop = dễ,
+                                                    B2B/Doctors = rất khó.</span>
                                             </span>
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorAudienceSource">--</span>
-                                    <span class="factor-field" title="factors.audience">aud</span>
                                     <span class="factor-value" id="factorAudience">×1.00</span>
                                 </div>
                             </div>
