@@ -1897,7 +1897,7 @@ window.selectProject = function (idx) {
         elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
             cb.checked = savedVendors.includes(cb.value);
         });
-        updatePanelVendorSelectionUI();
+        updatePanelSelectionUI();
     }
 
     // Target Audience
