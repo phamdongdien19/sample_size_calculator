@@ -408,7 +408,8 @@ function populateAudienceDropdown(audiences) {
 
     audiences.forEach(a => {
         const difficultyBadge = a.difficultyMultiplier > 1.5 ? '🔴' : a.difficultyMultiplier > 1.2 ? '🟡' : '🟢';
-        html += `<option value="${a.id}" data-factor="${a.difficultyMultiplier}">${difficultyBadge} ${a.name}</option>`;
+        const tooltip = a.description || a.notes || '';
+        html += `<option value="${a.id}" data-factor="${a.difficultyMultiplier}" title="${tooltip}">${difficultyBadge} ${a.name}</option>`;
     });
 
     elements.audienceSelect.innerHTML = html;
