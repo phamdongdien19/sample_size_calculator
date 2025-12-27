@@ -132,7 +132,16 @@ const elements = {
     toggleTiming: document.getElementById('toggleTiming'),
     toggleSampleSize: document.getElementById('toggleSampleSize'),
     toggleLocation: document.getElementById('toggleLocation'),
-    toggleAudience: document.getElementById('toggleAudience')
+    toggleAudience: document.getElementById('toggleAudience'),
+    // Factor Source labels
+    factorIRSource: document.getElementById('factorIRSource'),
+    factorTrafficSource: document.getElementById('factorTrafficSource'),
+    factorQuotaSource: document.getElementById('factorQuotaSource'),
+    factorQCSource: document.getElementById('factorQCSource'),
+    factorTimingSource: document.getElementById('factorTimingSource'),
+    factorSampleSizeSource: document.getElementById('factorSampleSizeSource'),
+    factorLocationSource: document.getElementById('factorLocationSource'),
+    factorAudienceSource: document.getElementById('factorAudienceSource')
 };
 
 // ============ INITIALIZATION ============
@@ -569,6 +578,10 @@ function populatePanelVendorMultiSelect(vendors) {
     if (!vendors || vendors.length === 0 || !elements.panelDropdownPanel) return;
 
     let html = `
+        <div class="dropdown-actions">
+            <button type="button" class="select-all-btn" id="selectAllPanelBtn">✅ Chọn tất cả</button>
+            <button type="button" class="deselect-all-btn" id="deselectAllPanelBtn">❌ Bỏ chọn</button>
+        </div>
         <div class="dropdown-content">
     `;
 
@@ -604,6 +617,30 @@ function populatePanelVendorMultiSelect(vendors) {
     elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.addEventListener('change', updatePanelSelectionUI);
     });
+
+    // Select All button
+    const selectAllBtn = elements.panelDropdownPanel.querySelector('#selectAllPanelBtn');
+    if (selectAllBtn) {
+        selectAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = true;
+            });
+            updatePanelSelectionUI();
+        });
+    }
+
+    // Deselect All button
+    const deselectAllBtn = elements.panelDropdownPanel.querySelector('#deselectAllPanelBtn');
+    if (deselectAllBtn) {
+        deselectAllBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+                cb.checked = false;
+            });
+            updatePanelSelectionUI();
+        });
+    }
 
     // Bind footer button
     const confirmBtn = elements.panelDropdownPanel.querySelector('#confirmPanelBtn');
@@ -815,6 +852,7 @@ async function onLocationSelect() {
             range: { min: 20, max: 40 },
             samplesPerDay: 50,
             travelBuffer: 0,
+            difficultyFactor: 1.0,
             notes: 'Fallback data'
         };
     }
@@ -822,11 +860,42 @@ async function onLocationSelect() {
     if (suggestion) {
         currentLocationStats = suggestion; // Store for calculation
 
+        // Determine difficulty badge
+        const diff = suggestion.difficultyFactor || 1.0;
+        let diffBadge, diffClass;
+        if (diff <= 0.9) {
+            diffBadge = '🟢 Dễ';
+            diffClass = 'easy';
+        } else if (diff <= 1.3) {
+            diffBadge = '🟡 TB';
+            diffClass = 'medium';
+        } else {
+            diffBadge = '🔴 Khó';
+            diffClass = 'hard';
+        }
+
         elements.irSuggestion.innerHTML = `
-            💡 IR suggest: <strong>${suggestion.defaultIR}%</strong>
-            (range: ${suggestion.range.min}-${suggestion.range.max}%)
-            ${suggestion.notes ? `<br><em>${suggestion.notes}</em>` : ''}
-            ${suggestion.travelBuffer > 0 ? `<br><small>+${suggestion.travelBuffer} travel days</small>` : ''}
+            <div class="ir-main">
+                💡 IR suggest: <strong>${suggestion.defaultIR}%</strong>
+                (range: ${suggestion.range.min}-${suggestion.range.max}%)
+            </div>
+            <div class="ir-location-info">
+                📍 ${suggestion.notes || 'Selected locations'}
+                <span class="difficulty-badge ${diffClass}">Difficulty: ×${diff.toFixed(2)} ${diffBadge}</span>
+            </div>
+            <div class="ir-tooltip-inline">
+                <span class="tooltip-icon">?</span>
+                <div class="tooltip-content ir-tooltip">
+                    <div class="tooltip-header">📌 IR và Difficulty dựa vào đâu?</div>
+                    <div class="tooltip-body">
+                        <ul>
+                            <li><strong>IR (Incidence Rate):</strong> Tỷ lệ qualify trung bình theo vùng, dựa trên historical data của các dự án tương tự.</li>
+                            <li><strong>Difficulty Factor:</strong> Độ khó recruit online - Thành phố lớn (×0.8 = nhanh), nông thôn/miền núi (×2.0 = chậm).</li>
+                        </ul>
+                        <div class="tooltip-footer">Factor < 1.0 = nhanh hơn baseline | Factor > 1.0 = chậm hơn baseline</div>
+                    </div>
+                </div>
+            </div>
         `;
         elements.irSuggestion.classList.add('visible');
 
@@ -1137,6 +1206,73 @@ async function updateDetailedModeResults(input) {
     }
     if (elements.adjustedDaily) {
         elements.adjustedDaily.textContent = `~${Math.round(adjustedDaily)} samples/day`;
+    }
+
+    // ============ UPDATE SOURCE LABELS ============
+    // IR Source
+    if (elements.factorIRSource) {
+        elements.factorIRSource.textContent = `IR ${input.ir}%`;
+    }
+
+    // Panel Source
+    if (elements.factorTrafficSource) {
+        if (input.panelVendors && input.panelVendors.length > 0) {
+            const vendorNames = input.panelVendors.slice(0, 2).join(', ');
+            elements.factorTrafficSource.textContent = input.panelVendors.length > 2
+                ? `${vendorNames} +${input.panelVendors.length - 2}`
+                : vendorNames;
+        } else {
+            elements.factorTrafficSource.textContent = 'Không chọn';
+        }
+    }
+
+    // Quota Skew Source
+    if (elements.factorQuotaSource) {
+        const skewLabels = { balanced: 'Balanced', light_skew: 'Skew nhẹ', heavy_skew: 'Skew nặng' };
+        elements.factorQuotaSource.textContent = skewLabels[input.quotaSkew] || 'Balanced';
+    }
+
+    // QC Source
+    if (elements.factorQCSource) {
+        elements.factorQCSource.textContent = `Buffer ${input.qcBuffer}%`;
+    }
+
+    // Timing Source
+    if (elements.factorTimingSource) {
+        if (input.fwStartDate) {
+            const dateStr = input.fwStartDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+            elements.factorTimingSource.textContent = `Start ${dateStr}`;
+        } else {
+            elements.factorTimingSource.textContent = 'Chưa chọn ngày';
+        }
+    }
+
+    // Sample Size Source
+    if (elements.factorSampleSizeSource) {
+        elements.factorSampleSizeSource.textContent = `N = ${input.sampleSize}`;
+    }
+
+    // Location Source
+    if (elements.factorLocationSource) {
+        if (currentLocationStats && currentLocationStats.notes) {
+            const locNames = currentLocationStats.notes.split(', ').slice(0, 2).join(', ');
+            const rawFactor = currentLocationStats.difficultyFactor?.toFixed(2) || '1.00';
+            elements.factorLocationSource.textContent = input.locations.length > 2
+                ? `${locNames}.. (×${rawFactor})`
+                : `${locNames} (×${rawFactor})`;
+        } else {
+            elements.factorLocationSource.textContent = 'Không chọn';
+        }
+    }
+
+    // Audience Source
+    if (elements.factorAudienceSource) {
+        if (input.targetAudience && input.targetAudience !== 'general') {
+            const audienceName = elements.audienceNameDisplay?.textContent || input.targetAudience;
+            elements.factorAudienceSource.textContent = audienceName;
+        } else {
+            elements.factorAudienceSource.textContent = 'General Pop';
+        }
     }
 
     // CPI Estimate

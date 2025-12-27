@@ -10,24 +10,46 @@ let cachedLocations = null;
 
 /**
  * Load all location defaults from Firestore
+ * Merges with default locations to ensure all required fields exist
  */
 export async function loadLocations() {
     if (cachedLocations) return cachedLocations;
+
+    const defaults = getDefaultLocations();
+    const defaultsMap = new Map(defaults.map(d => [d.id, d]));
 
     try {
         const locRef = collection(db, 'location_defaults');
         const q = query(locRef, orderBy('tier', 'asc'));
         const snapshot = await getDocs(q);
 
-        cachedLocations = snapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        }));
+        if (snapshot.empty) {
+            // No Firestore data, use defaults
+            cachedLocations = defaults;
+            return cachedLocations;
+        }
 
+        // Merge Firestore data with defaults - Firestore values override defaults
+        cachedLocations = snapshot.docs.map(doc => {
+            const firestoreData = { id: doc.id, ...doc.data() };
+            const defaultData = defaultsMap.get(doc.id) || {};
+
+            // Merge: default first, then Firestore overrides
+            return {
+                ...defaultData,
+                ...firestoreData,
+                // Ensure critical fields have fallback
+                difficultyFactor: firestoreData.difficultyFactor ?? defaultData.difficultyFactor ?? 1.0,
+                samplesPerDay: firestoreData.samplesPerDay ?? defaultData.samplesPerDay ?? 50
+            };
+        });
+
+        console.log('📍 Loaded locations with merged defaults:', cachedLocations.length);
         return cachedLocations;
     } catch (error) {
         console.error('Error loading locations:', error);
-        return getDefaultLocations();
+        cachedLocations = defaults;
+        return cachedLocations;
     }
 }
 
@@ -45,6 +67,7 @@ export async function calculateWeightedIR(locationIds) {
     const minIR = Math.min(...selected.map(l => l.irRange.min));
     const maxIR = Math.max(...selected.map(l => l.irRange.max));
     const avgSamplesPerDay = Math.round(selected.reduce((sum, l) => sum + (l.samplesPerDay || 50), 0) / selected.length);
+    const avgDifficultyFactor = selected.reduce((sum, l) => sum + (l.difficultyFactor || 1.0), 0) / selected.length;
 
     // Travel buffer: REMOVED for Online Quanti
     const travelBuffer = 0;
@@ -54,6 +77,7 @@ export async function calculateWeightedIR(locationIds) {
         range: { min: minIR, max: maxIR },
         samplesPerDay: avgSamplesPerDay,
         travelBuffer: 0,
+        difficultyFactor: avgDifficultyFactor,
         notes: selected.map(l => l.name).join(', ')
     };
 }

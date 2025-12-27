@@ -1237,11 +1237,58 @@ input[type="range"] {
     gap: 6px;
 }
 
+/* 3-Column Header */
+.factor-column-headers {
+    display: grid;
+    grid-template-columns: 1.2fr 1.3fr 0.6fr;
+    gap: 8px;
+    padding: 4px 0 8px 0;
+    border-bottom: 1px solid rgba(79, 70, 229, 0.15);
+    margin-bottom: 6px;
+}
+
+.factor-column-headers span {
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.col-factor {
+    text-align: left;
+    padding-left: 28px;
+}
+
+.col-source {
+    text-align: center;
+}
+
+.col-value {
+    text-align: right;
+}
+
+/* 3-Column Row */
 .factor-row {
-    display: flex;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: 1.2fr 1.3fr 0.6fr;
+    gap: 8px;
     align-items: center;
     padding: 4px 0;
+}
+
+/* Source column */
+.factor-source {
+    font-size: 0.72rem;
+    color: var(--text-sub);
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    background: rgba(255, 255, 255, 0.6);
+    padding: 2px 6px;
+    border-radius: 4px;
+    max-width: 100%;
 }
 
 .factor-label {
@@ -1922,4 +1969,119 @@ input[type="range"] {
     border-width: 5px;
     border-style: solid;
     border-color: rgba(30, 30, 50, 0.95) transparent transparent transparent;
+}
+
+/* ============ IR SUGGESTION IMPROVEMENTS ============ */
+.ir-suggestion {
+    padding: 12px 14px;
+}
+
+.ir-main {
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.ir-location-info {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 0.8rem;
+    color: var(--text-sub);
+    margin-bottom: 8px;
+}
+
+.difficulty-badge {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+}
+
+.difficulty-badge.easy {
+    background: var(--success-light);
+    color: #065f46;
+}
+
+.difficulty-badge.medium {
+    background: var(--warning-light);
+    color: #92400e;
+}
+
+.difficulty-badge.hard {
+    background: var(--danger-light);
+    color: #991b1b;
+}
+
+/* IR Tooltip Inline */
+.ir-tooltip-inline {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+}
+
+.ir-tooltip-inline .tooltip-icon {
+    width: 14px;
+    height: 14px;
+    font-size: 10px;
+}
+
+.ir-tooltip-inline .tooltip-content {
+    bottom: calc(100% + 8px);
+    left: 0;
+    transform: translateX(0) translateY(0);
+    width: 300px;
+}
+
+.ir-tooltip-inline:hover .tooltip-content {
+    transform: translateX(0) translateY(0);
+}
+
+.ir-tooltip-inline .tooltip-content::after {
+    left: 10px;
+    transform: translateX(0);
+}
+
+/* ============ DROPDOWN ACTION BUTTONS ============ */
+.dropdown-actions {
+    display: flex;
+    gap: 0.5rem;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    background: #f9fafb;
+}
+
+.select-all-btn,
+.deselect-all-btn {
+    flex: 1;
+    padding: 6px 10px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+.select-all-btn {
+    background: #d1fae5;
+    color: #059669;
+    border-color: #a7f3d0;
+}
+
+.select-all-btn:hover {
+    background: #a7f3d0;
+    border-color: #6ee7b7;
+}
+
+.deselect-all-btn {
+    background: #fee2e2;
+    color: #dc2626;
+    border-color: #fecaca;
+}
+
+.deselect-all-btn:hover {
+    background: #fecaca;
+    border-color: #fca5a5;
 }

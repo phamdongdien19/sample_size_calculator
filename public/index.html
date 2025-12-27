@@ -108,7 +108,27 @@
 
                     <!-- TEMPLATE SELECTOR -->
                     <div class="card template-card">
-                        <label for="templateSelect">📋 Chọn Template (tùy chọn)</label>
+                        <label for="templateSelect" class="label-with-tooltip">
+                            📋 Chọn Template (tùy chọn)
+                            <div class="tooltip-wrapper">
+                                <span class="tooltip-icon">?</span>
+                                <div class="tooltip-content">
+                                    <div class="tooltip-header">📌 Template dự án là gì?</div>
+                                    <div class="tooltip-body">
+                                        Chọn template để tự động điền các giá trị mặc định phù hợp với loại dự án.
+                                        <ul>
+                                            <li><strong>Không bắt buộc:</strong> Bạn có thể bỏ qua và nhập thủ công.
+                                            </li>
+                                            <li><strong>Auto-fill:</strong> N, LOI, IR, Location, Target Audience sẽ
+                                                được điền sẵn.</li>
+                                            <li><strong>Có thể chỉnh sửa:</strong> Sau khi chọn template, bạn vẫn có thể
+                                                thay đổi các giá trị.</li>
+                                        </ul>
+                                        <div class="tooltip-footer">Bỏ trống nếu muốn tự cấu hình từ đầu.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </label>
                         <select id="templateSelect">
                             <option value="">-- Chọn loại dự án --</option>
                         </select>
@@ -362,6 +382,11 @@
                                 📈 Factor Adjustment
                                 <span class="factor-toggle-hint">(click để bật/tắt)</span>
                             </div>
+                            <div class="factor-column-headers">
+                                <span class="col-factor">Factor</span>
+                                <span class="col-source">Source</span>
+                                <span class="col-value">Value</span>
+                            </div>
                             <div class="factor-rows">
                                 <!-- IR Impact -->
                                 <div class="factor-row">
@@ -375,6 +400,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorIRSource">--</span>
                                     <span class="factor-value" id="factorIR">×1.00</span>
                                 </div>
                                 <!-- Panel Source -->
@@ -389,6 +415,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorTrafficSource">--</span>
                                     <span class="factor-value" id="factorTraffic">×1.00</span>
                                 </div>
                                 <!-- Quota Skew -->
@@ -403,6 +430,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorQuotaSource">--</span>
                                     <span class="factor-value" id="factorQuota">×1.00</span>
                                 </div>
                                 <!-- QC Buffer -->
@@ -417,6 +445,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorQCSource">--</span>
                                     <span class="factor-value" id="factorQC">+10%</span>
                                 </div>
                                 <!-- Timing -->
@@ -431,6 +460,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorTimingSource">--</span>
                                     <span class="factor-value" id="factorTiming">×1.00</span>
                                 </div>
                                 <!-- Sample Size -->
@@ -445,6 +475,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorSampleSizeSource">--</span>
                                     <span class="factor-value" id="factorSampleSize">×1.00</span>
                                 </div>
                                 <!-- Location -->
@@ -459,6 +490,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorLocationSource">--</span>
                                     <span class="factor-value" id="factorLocation">×1.00</span>
                                 </div>
                                 <!-- Target Audience -->
@@ -473,6 +505,7 @@
                                             </span>
                                         </span>
                                     </label>
+                                    <span class="factor-source" id="factorAudienceSource">--</span>
                                     <span class="factor-value" id="factorAudience">×1.00</span>
                                 </div>
                             </div>
