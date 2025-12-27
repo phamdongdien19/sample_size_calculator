@@ -17,6 +17,8 @@ import { loadQuotaSkewConfig, getQuotaSkewMultiplier, getDefaultQuotaSkew } from
 import { loadTargetAudiences, getAudience, calculateAudienceImpact } from './js/targetAudienceService.js';
 // Phase 3: Auth
 import { logOut, onAuthChange } from './js/authService.js';
+// Phase 4: Admin actions
+import { deleteCalculation } from './js/adminService.js';
 
 // ============ UTILS ============
 function removeAccents(str) {
@@ -1717,16 +1719,46 @@ function renderProjectCards(projects, startIdx) {
         window.projectData[startIdx + idx] = item;
 
         return `
-            <div class="project-card ${isActive ? 'active' : ''}" onclick="selectProject(${startIdx + idx})" title="${item.projectName}">
-                <div class="project-name">${item.projectName || 'Untitled'}</div>
-                <div class="project-meta">
-                    <span class="project-date">${date}</span>
-                    <span class="project-days">${fwDays} ngày</span>
+            <div class="project-card ${isActive ? 'active' : ''}" title="${item.projectName}">
+                <div class="project-main" onclick="selectProject(${startIdx + idx})">
+                    <div class="project-name">${item.projectName || 'Untitled'}</div>
+                    <div class="project-meta">
+                        <span class="project-date">${date}</span>
+                        <span class="project-days">${fwDays} ngày</span>
+                    </div>
                 </div>
+                <button class="project-delete-btn" onclick="event.stopPropagation(); deleteProject('${item.id}', '${(item.projectName || 'Untitled').replace(/'/g, "\\'")}')" title="Xóa dự án">🗑️</button>
             </div>
         `;
     }).join('');
 }
+
+// ============ DELETE PROJECT ============
+window.deleteProject = async function (projectId, projectName) {
+    if (!confirm(`Xóa dự án "${projectName}"?\n\nHành động này không thể hoàn tác!`)) {
+        return;
+    }
+
+    try {
+        await deleteCalculation(projectId);
+
+        // Clear form if deleting current project
+        if (currentProjectId === projectId) {
+            currentProjectId = null;
+            if (elements.projectName) elements.projectName.value = '';
+            clearResults();
+        }
+
+        // Reload project list
+        loadProjectList(currentPage);
+
+        alert('Đã xóa dự án thành công!');
+    } catch (error) {
+        console.error('Delete project error:', error);
+        alert('Lỗi khi xóa dự án: ' + error.message);
+    }
+};
+
 
 function renderPagination(currentPage, totalPages) {
     const pagination = document.getElementById('pagination');

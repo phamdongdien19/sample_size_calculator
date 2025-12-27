@@ -184,7 +184,31 @@
                             </div>
 
                             <div class="form-group">
-                                <label>🎯 Target Audience</label>
+                                <label class="label-with-tooltip">
+                                    🎯 Target Audience
+                                    <div class="tooltip-wrapper">
+                                        <span class="tooltip-icon">?</span>
+                                        <div class="tooltip-content">
+                                            <div class="tooltip-header">📌 Difficulty dựa vào yếu tố nào?</div>
+                                            <div class="tooltip-body">
+                                                <ul>
+                                                    <li><strong>Population Incidence</strong> — % dân số thuộc target
+                                                        (VD: Doctors = 0.5%)</li>
+                                                    <li><strong>Online Reachability</strong> — Khả năng tiếp cận online
+                                                        (Gen Z dễ hơn Seniors)</li>
+                                                    <li><strong>Participation Rate</strong> — Tỷ lệ đồng ý tham gia
+                                                        survey</li>
+                                                    <li><strong>Qualification Complexity</strong> — Số câu screener cần
+                                                        để qualify</li>
+                                                    <li><strong>Response Quality Risk</strong> — Nguy cơ phải reject
+                                                        nhiều</li>
+                                                </ul>
+                                                <div class="tooltip-footer">Factor càng cao = càng khó recruit = FW chậm
+                                                    hơn</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </label>
                                 <select id="audienceSelect">
                                     <option value="general">-- Chọn đối tượng --</option>
                                 </select>
@@ -237,26 +261,6 @@
                                             <span class="radio-content">
                                                 <span class="radio-title">Nested</span>
                                                 <span class="radio-desc">Interlocking (VD: Male 18-24 HCM)</span>
-                                            </span>
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div class="form-group">
-                                    <label>Độ khó đối tượng (Target)</label>
-                                    <div class="radio-group">
-                                        <label class="radio-card selected">
-                                            <input type="radio" name="target" value="normal" checked>
-                                            <span class="radio-content">
-                                                <span class="radio-title">Thường</span>
-                                                <span class="radio-desc">Gen Pop, Mass consumers</span>
-                                            </span>
-                                        </label>
-                                        <label class="radio-card hard-target">
-                                            <input type="radio" name="target" value="hard">
-                                            <span class="radio-content">
-                                                <span class="radio-title">Khó / Niche</span>
-                                                <span class="radio-desc">Doctors, B2B, Specialists</span>
                                             </span>
                                         </label>
                                     </div>
@@ -385,6 +389,7 @@
                             <div class="factor-column-headers">
                                 <span class="col-factor">Factor</span>
                                 <span class="col-source">Source</span>
+                                <span class="col-field">Field</span>
                                 <span class="col-value">Value</span>
                             </div>
                             <div class="factor-rows">
@@ -401,6 +406,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorIRSource">--</span>
+                                    <span class="factor-field">factors.ir</span>
                                     <span class="factor-value" id="factorIR">×1.00</span>
                                 </div>
                                 <!-- Panel Source -->
@@ -416,6 +422,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorTrafficSource">--</span>
+                                    <span class="factor-field">factors.traffic</span>
                                     <span class="factor-value" id="factorTraffic">×1.00</span>
                                 </div>
                                 <!-- Quota Skew -->
@@ -431,6 +438,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorQuotaSource">--</span>
+                                    <span class="factor-field">factors.quotaSkew</span>
                                     <span class="factor-value" id="factorQuota">×1.00</span>
                                 </div>
                                 <!-- QC Buffer -->
@@ -446,6 +454,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorQCSource">--</span>
+                                    <span class="factor-field">factors.qcBuffer</span>
                                     <span class="factor-value" id="factorQC">+10%</span>
                                 </div>
                                 <!-- Timing -->
@@ -461,6 +470,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorTimingSource">--</span>
+                                    <span class="factor-field">factors.timing</span>
                                     <span class="factor-value" id="factorTiming">×1.00</span>
                                 </div>
                                 <!-- Sample Size -->
@@ -476,6 +486,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorSampleSizeSource">--</span>
+                                    <span class="factor-field">factors.sampleSize</span>
                                     <span class="factor-value" id="factorSampleSize">×1.00</span>
                                 </div>
                                 <!-- Location -->
@@ -491,6 +502,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorLocationSource">--</span>
+                                    <span class="factor-field">factors.location</span>
                                     <span class="factor-value" id="factorLocation">×1.00</span>
                                 </div>
                                 <!-- Target Audience -->
@@ -506,6 +518,7 @@
                                         </span>
                                     </label>
                                     <span class="factor-source" id="factorAudienceSource">--</span>
+                                    <span class="factor-field">factors.audience</span>
                                     <span class="factor-value" id="factorAudience">×1.00</span>
                                 </div>
                             </div>

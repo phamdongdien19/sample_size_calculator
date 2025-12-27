@@ -1237,18 +1237,18 @@ input[type="range"] {
     gap: 6px;
 }
 
-/* 3-Column Header */
+/* 4-Column Header */
 .factor-column-headers {
     display: grid;
-    grid-template-columns: 1.2fr 1.3fr 0.6fr;
-    gap: 8px;
+    grid-template-columns: 1.2fr 1fr 0.8fr 0.5fr;
+    gap: 6px;
     padding: 4px 0 8px 0;
     border-bottom: 1px solid rgba(79, 70, 229, 0.15);
     margin-bottom: 6px;
 }
 
 .factor-column-headers span {
-    font-size: 0.7rem;
+    font-size: 0.65rem;
     font-weight: 600;
     color: var(--text-muted);
     text-transform: uppercase;
@@ -1264,17 +1264,32 @@ input[type="range"] {
     text-align: center;
 }
 
+.col-field {
+    text-align: center;
+}
+
 .col-value {
     text-align: right;
 }
 
-/* 3-Column Row */
+/* 4-Column Row */
 .factor-row {
     display: grid;
-    grid-template-columns: 1.2fr 1.3fr 0.6fr;
-    gap: 8px;
+    grid-template-columns: 1.2fr 1fr 0.8fr 0.5fr;
+    gap: 6px;
     align-items: center;
     padding: 4px 0;
+}
+
+/* Field column (debug) */
+.factor-field {
+    font-size: 0.65rem;
+    color: #9ca3af;
+    font-family: 'Consolas', 'Monaco', monospace;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 /* Source column */
@@ -2084,4 +2099,41 @@ input[type="range"] {
 .deselect-all-btn:hover {
     background: #fecaca;
     border-color: #fca5a5;
+}
+
+/* ============ PROJECT CARD DELETE BUTTON ============ */
+.project-card {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+}
+
+.project-main {
+    flex: 1;
+    cursor: pointer;
+    padding: 10px 12px;
+    min-width: 0;
+}
+
+.project-delete-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 10px;
+    border: none;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+    font-size: 0.9rem;
+    border-left: 1px solid rgba(0, 0, 0, 0.05);
+    transition: all 0.15s ease;
+}
+
+.project-card:hover .project-delete-btn {
+    display: flex;
+}
+
+.project-delete-btn:hover {
+    background: #fee2e2;
+    color: #dc2626;
 }

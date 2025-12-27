@@ -628,9 +628,9 @@ function getModalForm(type) {
                     <small style="color: #666;">Thấp hơn = khó reach hơn (0.05 - 1.0)</small>
                 </div>
                 <div class="form-group">
-                    <label>Difficulty Multiplier (×)</label>
-                    <input type="number" id="formAudienceDifficulty" step="0.1" min="1" max="3" value="1.0">
-                    <small style="color: #666;">Cao hơn = cần nhiều ngày hơn (1.0 - 3.0)</small>
+                    <label>Difficulty Factor (×) <span style="color: red;">*</span></label>
+                    <input type="number" id="formAudienceDifficulty" step="0.1" min="0.5" max="5" value="1.0" required>
+                    <small style="color: #666;">Cao hơn = cần nhiều ngày hơn (0.5 - 5.0) <strong>Bắt buộc</strong></small>
                 </div>
             </div>
             <div class="form-group">
@@ -789,16 +789,18 @@ async function onModalSave() {
         } else if (editingType === 'audience') {
             const id = editingId || document.getElementById('formAudienceId').value.trim();
             const name = document.getElementById('formAudienceName').value.trim();
+            const difficulty = parseFloat(document.getElementById('formAudienceDifficulty').value);
 
             if (!id) throw new Error('Vui lòng nhập ID');
             if (!name) throw new Error('Vui lòng nhập tên audience');
+            if (!difficulty || difficulty < 0.5) throw new Error('Vui lòng nhập Difficulty Factor (tối thiểu 0.5)');
 
             const data = {
                 id: id,
                 name: name,
                 order: parseInt(document.getElementById('formAudienceOrder').value) || 1,
                 irFactor: parseFloat(document.getElementById('formAudienceIrFactor').value) || 1.0,
-                difficultyMultiplier: parseFloat(document.getElementById('formAudienceDifficulty').value) || 1.0,
+                difficultyMultiplier: difficulty,
                 description: document.getElementById('formAudienceDesc').value || '',
                 notes: document.getElementById('formAudienceNotes').value || ''
             };
