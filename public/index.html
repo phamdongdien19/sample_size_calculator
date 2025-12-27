@@ -580,8 +580,12 @@
                         <div class="summary-table-container hidden" id="summaryTableContainer">
                             <div class="summary-header">
                                 <h3>📋 Bảng Tóm Tắt</h3>
-                                <button type="button" class="copy-btn" id="copySummaryBtn" title="Copy to clipboard">📋
-                                    Copy</button>
+                                <div class="summary-actions" style="display: flex; gap: 8px;">
+                                    <button type="button" class="copy-btn" id="emailSummaryBtn" title="Gửi Email"
+                                        style="background: #0ea5e9;">📧 Email</button>
+                                    <button type="button" class="copy-btn" id="copySummaryBtn"
+                                        title="Copy to clipboard">📋 Copy</button>
+                                </div>
                             </div>
                             <table class="summary-table" id="summaryTable">
                                 <thead>
