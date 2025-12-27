@@ -1409,22 +1409,25 @@ async function onSave() {
     elements.saveBtn.textContent = '⏳ Đang lưu...';
 
     try {
-        await saveCalculation(data);
+        const savedId = await saveCalculation(data, currentProjectId);
+        if (savedId) {
+            currentProjectId = savedId;
+        }
+
         elements.saveStatus.textContent = '✅ Đã lưu thành công!';
         elements.saveStatus.style.color = '#10b981';
 
         // Show and populate summary table
         populateSummaryTable(input, expertDays);
 
-        // Reload history and project list
-        await loadHistory();
-        await loadProjectList(1);
+        // Reload history and project list (keep current page)
+        await loadProjectList(currentPage);
 
-        // Clear form for next calculation
+        // Highlight current project in list
+        highlightCurrentProject();
+
+        // Clear warning after 2s
         setTimeout(() => {
-            elements.expertDays.value = '';
-            elements.expertNote.value = '';
-            elements.conclusionWarning.classList.add('hidden');
             elements.saveStatus.textContent = '';
         }, 2000);
     } catch (error) {
@@ -1812,7 +1815,7 @@ window.deleteProject = async function (projectId, projectName) {
         // Reload project list
         loadProjectList(currentPage);
 
-        alert('Đã xóa dự án thành công!');
+        // Alert removed for better UX
     } catch (error) {
         console.error('Delete project error:', error);
         alert('Lỗi khi xóa dự án: ' + error.message);
@@ -2017,3 +2020,51 @@ function setupAuthUI() {
 // ============ START ============
 init();
 setupAuthUI();
+
+// NEW: Create New Project Logic
+function createNewProject() {
+    if (confirm('Tạo estimate mới? Dữ liệu đang nhập sẽ bị mất nếu chưa lưu.')) {
+        currentProjectId = null;
+
+        // Reset inputs
+        if (elements.projectName) elements.projectName.value = '';
+        if (elements.sampleSize) elements.sampleSize.value = '';
+        if (elements.loi) elements.loi.value = '';
+        if (elements.irInput) {
+            elements.irInput.value = '35';
+            elements.irValue.textContent = '35';
+        }
+        if (elements.expertDays) elements.expertDays.value = '';
+        if (elements.expertNote) elements.expertNote.value = '';
+        if (elements.fwStartDate) elements.fwStartDate.value = '';
+
+        // Reset multi-selects
+        if (elements.locationDropdownPanel) {
+            elements.locationDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            if (typeof updateLocationSelectionUI === 'function') updateLocationSelectionUI();
+        }
+        if (elements.panelDropdownPanel) {
+            elements.panelDropdownPanel.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            if (typeof updatePanelSelectionUI === 'function') updatePanelSelectionUI();
+        }
+
+        // Reset results & UI
+        clearResults();
+        document.getElementById('summaryTableContainer')?.classList.add('hidden');
+        elements.saveStatus.textContent = '';
+
+        // Reset selection
+        document.querySelectorAll('.project-card').forEach(c => c.classList.remove('active'));
+
+        // Back to quick mode
+        switchMode('quick');
+
+        // Scroll top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function highlightCurrentProject() {
+    // Logic handled by renderProjectCards re-render
+    // Kept for compatibility with onSave calls
+}

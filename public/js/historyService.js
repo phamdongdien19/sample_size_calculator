@@ -13,35 +13,44 @@ import {
     query,
     orderBy,
     limit,
-    serverTimestamp
+    serverTimestamp,
+    updateDoc
 } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
 
 const COLLECTION_NAME = 'calculation_history';
 
 /**
- * Save a calculation to history
+ * Save a calculation to history (Create or Update)
  * @param {Object} data - Calculation data to save
+ * @param {string|null} id - Document ID to update (optional)
  */
-export async function saveCalculation(data) {
+export async function saveCalculation(data, id = null) {
     try {
-        const historyRef = collection(db, COLLECTION_NAME);
-
         const record = {
             projectName: data.projectName || 'Untitled Project',
             mode: data.mode || 'detailed',
             input: data.input,
             systemResult: data.systemResult,
-            expertConclusion: data.expertConclusion,
-            createdAt: serverTimestamp()
+            expertConclusion: data.expertConclusion
         };
 
-        const docRef = await addDoc(historyRef, record);
-        console.log('Saved to history:', docRef.id);
-
-        // Cleanup old records
-        await cleanupOldHistory();
-
-        return docRef.id;
+        if (id) {
+            // UPDATE existing
+            record.updatedAt = serverTimestamp();
+            const docRef = doc(db, COLLECTION_NAME, id);
+            await updateDoc(docRef, record);
+            console.log('Updated history:', id);
+            return id;
+        } else {
+            // CREATE new
+            record.createdAt = serverTimestamp();
+            const historyRef = collection(db, COLLECTION_NAME);
+            const docRef = await addDoc(historyRef, record);
+            console.log('Saved to history:', docRef.id);
+            // Cleanup old records
+            await cleanupOldHistory();
+            return docRef.id;
+        }
     } catch (error) {
         console.error('Error saving to history:', error);
         // Fallback to localStorage
